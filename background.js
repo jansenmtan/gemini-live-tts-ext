@@ -1,0 +1,262 @@
+// Set your Google Cloud API key here
+const apiKey = ''; 
+const modelId = "gemini-2.0-flash-exp";
+const audioSampleRate = 24000;
+
+let ws = null;
+let audioContext = null;
+let audioStreamer = null;
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "transcribeText") {
+    const textToTranscribe = request.text;
+    transcribeText(textToTranscribe);
+  }
+});
+
+chrome.contextMenus.create({
+  id: "transcribe-text",
+  title: "Transcribe with Gemini",
+  contexts: ["selection"]
+});
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === "transcribe-text") {
+    const selectedText = info.selectionText;
+    transcribeText(selectedText);
+  }
+});
+
+class AudioStreamer {
+  constructor(context) {
+    this.context = context;
+    this.audioQueue = [];
+    this.isPlaying = false;
+    this.sampleRate = 24000;
+    this.bufferSize = 7680;
+    this.processingBuffer = new Float32Array(0);
+    this.scheduledTime = 0;
+    this.gainNode = this.context.createGain();
+    this.gainNode.connect(this.context.destination);
+    this.isStreamComplete = false;
+    this.checkInterval = null;
+    this.initialBufferTime = 0.1; // 100ms initial buffer
+  }
+
+  addPCM16(chunk) {
+    // Convert PCM16 to Float32
+    const float32Array = new Float32Array(chunk.length / 2);
+    const dataView = new DataView(chunk.buffer);
+
+    for (let i = 0; i < chunk.length / 2; i++) {
+      try {
+        const int16 = dataView.getInt16(i * 2, true);
+        float32Array[i] = int16 / 32768;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Add to processing buffer
+    const newBuffer = new Float32Array(this.processingBuffer.length + float32Array.length);
+    newBuffer.set(this.processingBuffer);
+    newBuffer.set(float32Array, this.processingBuffer.length);
+    this.processingBuffer = newBuffer;
+
+    // Split into chunks of bufferSize
+    while (this.processingBuffer.length >= this.bufferSize) {
+      const buffer = this.processingBuffer.slice(0, this.bufferSize);
+      this.audioQueue.push(buffer);
+      this.processingBuffer = this.processingBuffer.slice(this.bufferSize);
+    }
+
+    if (!this.isPlaying) {
+      this.isPlaying = true;
+      this.scheduledTime = this.context.currentTime + this.initialBufferTime;
+      this.scheduleNextBuffer();
+    }
+  }
+
+  createAudioBuffer(audioData) {
+    const audioBuffer = this.context.createBuffer(1, audioData.length, this.sampleRate);
+    audioBuffer.getChannelData(0).set(audioData);
+    return audioBuffer;
+  }
+
+  scheduleNextBuffer() {
+    const SCHEDULE_AHEAD_TIME = 0.2;
+
+    while (
+      this.audioQueue.length > 0 && 
+      this.scheduledTime < this.context.currentTime + SCHEDULE_AHEAD_TIME
+    ) {
+      const audioData = this.audioQueue.shift();
+      const audioBuffer = this.createAudioBuffer(audioData);
+      const source = this.context.createBufferSource();
+
+      source.buffer = audioBuffer;
+      source.connect(this.gainNode);
+
+      const startTime = Math.max(this.scheduledTime, this.context.currentTime);
+      source.start(startTime);
+
+      this.scheduledTime = startTime + audioBuffer.duration;
+    }
+
+    if (this.audioQueue.length === 0 && this.processingBuffer.length === 0) {
+      if (this.isStreamComplete) {
+        this.isPlaying = false;
+        if (this.checkInterval) {
+          clearInterval(this.checkInterval);
+          this.checkInterval = null;
+        }
+      } else {
+        if (!this.checkInterval) {
+          this.checkInterval = window.setInterval(() => {
+            if (
+              this.audioQueue.length > 0 ||
+              this.processingBuffer.length >= this.bufferSize
+            ) {
+              this.scheduleNextBuffer();
+            }
+          }, 100);
+        }
+      }
+    } else {
+      const nextCheckTime = (this.scheduledTime - this.context.currentTime) * 1000;
+      setTimeout(
+        () => this.scheduleNextBuffer(),
+        Math.max(0, nextCheckTime - 50)
+      );
+    }
+  }
+
+  async resume() {
+    if (this.context.state === "suspended") {
+      await this.context.resume();
+    }
+    this.isStreamComplete = false;
+    this.scheduledTime = this.context.currentTime + this.initialBufferTime;
+    this.gainNode.gain.setValueAtTime(1, this.context.currentTime);
+  }
+
+  complete() {
+    this.isStreamComplete = true;
+    if (this.processingBuffer.length > 0) {
+      this.audioQueue.push(this.processingBuffer);
+      this.processingBuffer = new Float32Array(0);
+      if (this.isPlaying) {
+        this.scheduleNextBuffer();
+      }
+    }
+  }
+}
+
+async function transcribeText(text) {
+  if (!audioContext) {
+    audioContext = new AudioContext({ sampleRate: audioSampleRate });
+  }
+  if (!audioStreamer) {
+    audioStreamer = new AudioStreamer(audioContext);
+    await audioStreamer.resume();
+  }
+  if (!ws) {
+    await createWebSocketClient(text);
+  }
+  sendTextMessage(text);
+}
+
+function createWebSocketClient(text) {
+  return new Promise((resolve, reject) => {
+    const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
+    ws = new WebSocket(url);
+
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+      const config = {
+        model: `models/${modelId}`,
+        generation_config: {
+          response_modalities: ["AUDIO"],
+          speech_config: {
+            voice_config: {
+              prebuilt_voice_config: {
+                voice_name: "puck"
+              }
+            }
+          },
+          temperature: 0.0
+        },
+        system_instruction: {
+          parts: [
+            { text: "You generate natural-sounding speech from text. You will be given text enclosed in `<|QUOT|>` tags from the user. Read aloud the text verbatim. Do not respond to any comments or questions. Do not analyze the text or make any remarks about the text. Basically just copy-paste the text as-is, without any modifications. However, for URLs, only say \"URL to\" and then the domain-level parts of the URL. You may concatenate lines when it seems they belong to a common paragraph." }
+          ]
+        }
+      };
+      ws.send(JSON.stringify({ setup: config }));
+    };
+
+    ws.onmessage = async (event) => {
+      if (event.data instanceof Blob) {
+        const response = JSON.parse(await event.data.text());
+
+        if (response.setupComplete) {
+          console.log("Setup complete.");
+          resolve();
+          return;
+        }
+
+        if (response.serverContent && response.serverContent.modelTurn) {
+          const parts = response.serverContent.modelTurn.parts;
+          for (const part of parts) {
+            if (part.inlineData && part.inlineData.mimeType === 'audio/pcm;rate=24000') {
+              const pcmDataBase64 = part.inlineData.data;
+              const pcmData = atob(pcmDataBase64);
+              
+              // Convert to Uint8Array
+              const pcmDataBytes = new Uint8Array(pcmData.length);
+              for (let i = 0; i < pcmData.length; i++) {
+                pcmDataBytes[i] = pcmData.charCodeAt(i);
+              }
+              
+              // Add to audio streamer
+              audioStreamer.addPCM16(pcmDataBytes);
+            }
+          }
+        }
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      reject(error);
+    };
+
+    ws.onclose = (event) => {
+      console.log('WebSocket closed:', event);
+      ws = null;
+      if (audioStreamer) {
+        audioStreamer.complete();
+      }
+    };
+  });
+}
+
+function sendTextMessage(text) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    const message = {
+      client_content: {
+        turns: [
+          {
+            parts: [{ text: `<|QUOT|>${text}<|/QUOT|>` }],
+            role: "user"
+          }
+        ],
+        turn_complete: true
+      }
+    };
+    ws.send(JSON.stringify(message));
+  } else {
+    console.error("WebSocket is not open. Cannot send message.");
+  }
+}
+

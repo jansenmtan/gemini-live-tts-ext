@@ -1,0 +1,27 @@
+{
+  "manifest_version": 2,
+  "name": "Gemini Live Text-to-Speech",
+  "version": "0.1.0",
+  "description": "Transcribes selected text to audio using Google Gemini Multimodal Live API.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "tts-ext@jansenmtan"
+    }
+  },
+  "permissions": [
+    "activeTab",
+    "storage",
+    "contextMenus",
+    "<all_urls>"
+  ],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": true
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}
