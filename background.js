@@ -1,5 +1,17 @@
-// Set your Google Cloud API key here
-const apiKey = ''; 
+let apiKey = '';
+
+// Load API key when extension starts
+chrome.storage.sync.get(['apiKey'], (items) => {
+  apiKey = items.apiKey || '';
+});
+
+// Listen for API key changes
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.apiKey) {
+    apiKey = changes.apiKey.newValue;
+  }
+});
+
 const modelId = "gemini-2.0-flash-exp";
 const audioSampleRate = 24000;
 
