@@ -6,6 +6,7 @@
     body { padding: 20px; }
     .field { margin-bottom: 15px; }
     input[type="text"] { width: 300px; padding: 5px; }
+    select { padding: 5px; }
   </style>
 </head>
 <body>
@@ -13,6 +14,16 @@
   <div class="field">
     <label for="apiKey">Gemini API Key:</label><br>
     <input type="text" id="apiKey">
+  </div>
+  <div class="field">
+    <label for="voiceSelect">Voice:</label><br>
+    <select id="voiceSelect">
+      <option value="puck">Puck</option>
+      <option value="charon">Charon</option>
+      <option value="kore">Kore</option>
+      <option value="fenrir">Fenrir</option>
+      <option value="aoede">Aoede</option>
+    </select>
   </div>
   <button id="save">Save</button>
   <div id="status"></div>

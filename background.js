@@ -1,14 +1,20 @@
 let apiKey = '';
+let selectedVoice = 'puck'; // Default voice
 
-// Load API key when extension starts
-chrome.storage.sync.get(['apiKey'], (items) => {
+// Load API key and voice setting when extension starts
+chrome.storage.sync.get(['apiKey', 'voice'], (items) => {
   apiKey = items.apiKey || '';
+  selectedVoice = items.voice || 'puck';
 });
+
 
 // Listen for API key changes
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.apiKey) {
     apiKey = changes.apiKey.newValue;
+  }
+  if (changes.voice) {
+    selectedVoice = changes.voice.newValue;
   }
 });
 
@@ -23,6 +29,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "transcribeText") {
     const textToTranscribe = request.text;
     transcribeText(textToTranscribe);
+  }
+
+  if (request.action === "resetWebSocket") {
+    console.log("Resetting WebSocket connection due to voice change.");
+    if (ws) {
+        ws.close(); // Close existing connection
+        ws = null;
+      }
+    if (request.voice) {
+        selectedVoice = request.voice;
+    }
+    audioContext = null;
+    audioStreamer = null;
   }
 });
 
@@ -52,7 +71,7 @@ class AudioStreamer {
     this.gainNode.connect(this.context.destination);
     this.isStreamComplete = false;
     this.checkInterval = null;
-    this.initialBufferTime = 0.1; // 100ms initial buffer
+    this.initialBufferTime = 0.3; // 100ms initial buffer
   }
 
   addPCM16(chunk) {
@@ -173,13 +192,19 @@ async function transcribeText(text) {
     await audioStreamer.resume();
   }
   if (!ws) {
-    await createWebSocketClient(text);
+    await createWebSocketClient(text, selectedVoice);
   }
   sendTextMessage(text);
 }
 
-function createWebSocketClient(text) {
+function createWebSocketClient(text, voice = 'puck') { 
   return new Promise((resolve, reject) => {
+    if (!apiKey) {
+      console.error("API key is missing!");
+      reject("API key is missing");
+      return;
+    }
+
     const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
     ws = new WebSocket(url);
 
@@ -192,7 +217,7 @@ function createWebSocketClient(text) {
           speech_config: {
             voice_config: {
               prebuilt_voice_config: {
-                voice_name: "puck"
+                voice_name: voice // Use the selected voice
               }
             }
           },
