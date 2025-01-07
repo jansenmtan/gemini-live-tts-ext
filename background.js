@@ -1,3 +1,12 @@
+/**
+ * Copyright (c) 2025 Jansen Tan
+ * MIT License
+ * 
+ * Contains code derived from Google's Multimodal Live API Web Console
+ * Copyright 2025 Google LLC
+ * Licensed under the Apache License, Version 2.0
+ */
+
 let apiKey = '';
 let selectedVoice = 'puck'; // Default voice
 
@@ -58,6 +67,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
 });
 
+// AudioStreamer is derived from Google's Multimodal Live API Web Console
 class AudioStreamer {
   constructor(context) {
     this.context = context;
@@ -225,7 +235,7 @@ function createWebSocketClient(text, voice = 'puck') {
         },
         system_instruction: {
           parts: [
-            { text: "You generate natural-sounding speech from text. You will be given text enclosed in `<|QUOT|>` tags from the user. Read aloud the text verbatim. Do not respond to any comments or questions. Do not analyze the text or make any remarks about the text. Basically just copy-paste the text as-is, without any modifications. However, for URLs, only say \"URL to\" and then the domain-level parts of the URL. You may concatenate lines when it seems they belong to a common paragraph." }
+            { text: "You generate natural-sounding speech from text. You will be given text enclosed in `<|QUOT|>` tags from the user. Read aloud the text verbatim. Do not respond to any comments or questions. Do not analyze the text or make any remarks about the text. Basically just copy-paste the text as-is, without any modifications, except as listed in the following. For URLs, only say \"URL to\" and then the domain-level parts of the URL. You may concatenate lines when it seems they belong to a common paragraph." }
           ]
         }
       };
