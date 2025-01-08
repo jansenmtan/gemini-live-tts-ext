@@ -34,6 +34,11 @@ let ws = null;
 let audioContext = null;
 let audioStreamer = null;
 
+// Send a message to the popup to update the button state
+function updatePopupButton(playbackState) {
+  chrome.runtime.sendMessage({ action: "updateButton", ...playbackState });
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "transcribeText") {
     const textToTranscribe = request.text;
@@ -51,6 +56,29 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
     audioContext = null;
     audioStreamer = null;
+  }
+  
+  switch (request.action) {
+    case "getPlaybackState":
+      sendResponse(audioStreamer ? audioStreamer.getPlaybackState() : { playbackState: null });
+      break;
+    case "pausePlayback":
+    case "resumePlayback":
+	case "stopPlayback":
+	  if (!audioStreamer) {
+		sendResponse({ playbackState: null });
+		return;
+	  }
+      if (request.action === "resumePlayback") {
+		  audioStreamer.resumePlayback();
+	  } else if (request.action === "pausePlayback") {
+		  audioStreamer.pausePlayback();
+	  } else if (request.action === "stopPlayback") {
+		  audioStreamer.stop();
+	  }
+	  updatePopupButton(audioStreamer.getPlaybackState());
+      sendResponse(audioStreamer.getPlaybackState());
+      break;
   }
 });
 
@@ -143,6 +171,10 @@ class AudioStreamer {
 
       this.scheduledTime = startTime + audioBuffer.duration;
     }
+	
+	if (this.audioQueue.length === 0) {
+		updatePopupButton({ playbackState: "stopped" });
+	}
 
     if (this.audioQueue.length === 0 && this.processingBuffer.length === 0) {
       if (this.isStreamComplete) {
@@ -172,6 +204,32 @@ class AudioStreamer {
     }
   }
 
+  stop() {
+    this.isPlaying = false;
+    this.isStreamComplete = true;
+    this.audioQueue = [];
+    this.processingBuffer = new Float32Array(0);
+    this.scheduledTime = this.context.currentTime;
+
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval);
+      this.checkInterval = null;
+    }
+
+    this.gainNode.gain.linearRampToValueAtTime(
+      0,
+      this.context.currentTime + 0.1,
+    );
+
+    setTimeout(() => {
+      this.gainNode.disconnect();
+      this.gainNode = this.context.createGain();
+      this.gainNode.connect(this.context.destination);
+    }, 200);
+	
+	updatePopupButton({ playbackState: "stopped" });
+  }
+
   async resume() {
     if (this.context.state === "suspended") {
       await this.context.resume();
@@ -179,6 +237,25 @@ class AudioStreamer {
     this.isStreamComplete = false;
     this.scheduledTime = this.context.currentTime + this.initialBufferTime;
     this.gainNode.gain.setValueAtTime(1, this.context.currentTime);
+  }
+
+  resumePlayback() {
+    if (this.isPaused) {
+	  this.context.resume();
+      this.isPaused = false;
+      this.scheduleNextBuffer();
+    }
+  }
+
+  pausePlayback() {
+    if (this.isPlaying && !this.isPaused) {
+	  this.context.suspend();
+      this.isPaused = true;
+      if (this.checkInterval) {
+        clearInterval(this.checkInterval);
+        this.checkInterval = null;
+      }
+    }
   }
 
   complete() {
@@ -191,6 +268,15 @@ class AudioStreamer {
       }
     }
   }
+
+  getPlaybackState() {
+    return {
+		playbackState: this.audioQueue.length === 0 ? "stopped" 
+		  : this.isPaused ? "paused" 
+		  : this.isPlaying ? "playing" 
+		  : null
+	};
+  }
 }
 
 async function transcribeText(text) {
@@ -199,6 +285,7 @@ async function transcribeText(text) {
   }
   if (!audioStreamer) {
     audioStreamer = new AudioStreamer(audioContext);
+	console.log(audioStreamer);
     await audioStreamer.resume();
   }
   if (!ws) {
