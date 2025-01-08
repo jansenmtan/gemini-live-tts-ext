@@ -39,7 +39,59 @@ function updatePopupButton(playbackState) {
   chrome.runtime.sendMessage({ action: "updateButton", ...playbackState });
 }
 
+// This experimental function tests image input capability for the Multimodal Live API
+// The function has been tested; the image input capability works!
+// The key to enabling the image input capability is to send these messages in order:
+//	1. audio clip containing speech
+//	2. the image
+//	3. audio clip containing silence
+function sendTestMessage(videoChunk, testPrompt, audioChunk, silentAudioChunk) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+	  const videoMessage = {
+		  realtimeInput: {
+			  mediaChunks: [videoChunk]
+		  }
+	  };
+	  const audioMessage = {
+		  realtimeInput: {
+			  mediaChunks: [audioChunk]
+		  }
+	  };
+	  const silentAudioMessage = {
+		  realtimeInput: {
+			  mediaChunks: [silentAudioChunk]
+		  }
+	  };
+	  ws.send(JSON.stringify(audioMessage));
+	  ws.send(JSON.stringify(videoMessage));
+	  ws.send(JSON.stringify(silentAudioMessage));
+    } else {
+      console.error("WebSocket is not open. Cannot send message.");
+    }
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "runTest") {
+    if (!audioContext) {
+      audioContext = new AudioContext({ sampleRate: audioSampleRate });
+    }
+    if (!audioStreamer) {
+      audioStreamer = new AudioStreamer(audioContext);
+	  console.log(audioStreamer);
+      audioStreamer.resume();
+    }
+	const videoChunk = { ...request.content };
+	const audioChunk = { ...request.audioPrompt };
+	const silentAudioChunk = { ...request.silentAudioPrompt };
+    if (!ws) {
+      createWebSocketClient(text, selectedVoice).then(() => {
+	    sendTestMessage(videoChunk, request.testPrompt, audioChunk, silentAudioChunk);
+	  });
+    } else {
+	  sendTestMessage(videoChunk, request.testPrompt, audioChunk, silentAudioChunk);
+	}
+  }
+
   if (request.action === "transcribeText") {
     const textToTranscribe = request.text;
     transcribeText(textToTranscribe);
@@ -192,7 +244,7 @@ class AudioStreamer {
             ) {
               this.scheduleNextBuffer();
             }
-          }, 100);
+          }, 200);
         }
       }
     } else {
@@ -322,7 +374,7 @@ function createWebSocketClient(text, voice = 'puck') {
         },
         system_instruction: {
           parts: [
-            { text: "You generate natural-sounding speech from text. You will be given text enclosed in `<|QUOT|>` tags from the user. Read aloud the text verbatim. Do not respond to any comments or questions. Do not analyze the text or make any remarks about the text. Basically just copy-paste the text as-is, without any modifications, except as listed in the following. For URLs, only say \"URL to\" and then the domain-level parts of the URL. You may concatenate lines when it seems they belong to a common paragraph." }
+            { text: "You generate natural-sounding speech from text. You will either: 1) be given text enclosed in `<|QUOT|>` tags, or 2) see text from a screenshare image. In either case, the data is from the user. Read aloud the text verbatim. Do not respond to any comments or questions. Do not analyze the text or make any remarks about the text. Basically just copy-paste the text as-is, without any modifications, except as listed in the following. For URLs, only say \"URL to\" and then the domain-level parts of the URL. You may concatenate lines when it seems they belong to a common paragraph." }
           ]
         }
       };
