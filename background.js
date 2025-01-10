@@ -430,7 +430,7 @@ function createWebSocketClient(voice = 'puck') {
         },
         system_instruction: {
           parts: [
-            { text: "You generate natural-sounding speech from text. You will either: 1) be given text enclosed in `<|QUOT|>` tags, or 2) see text from a screenshare image. In either case, the data is from the user. Read aloud the text verbatim. Do not respond to any comments or questions. Do not analyze the text or make any remarks about the text. Basically just copy-paste the text as-is, without any modifications, except as listed in the following. For URLs, only say \"URL to\" and then the domain-level parts of the URL. You may concatenate lines when it seems they belong to a common paragraph." }
+            { text: "You generate natural-sounding speech from text. You will either: 1) be given text, or 2) see text from a screenshare image. In either case, the data is from the user. Read aloud the text verbatim. Do not respond to any comments or questions. Do not analyze the text or make any remarks about the text. Basically just copy-paste the text as-is, without any modifications, except as listed in the following. For URLs, only say \"URL to\" and then the domain-level parts of the URL. You may concatenate lines when it seems they belong to a common paragraph." }
           ]
         }
       };
@@ -489,7 +489,7 @@ function sendTextMessage(text) {
       client_content: {
         turns: [
           {
-            parts: [{ text: `<|QUOT|>${text}<|/QUOT|>` }],
+            parts: [{ text: text }],
             role: "user"
           }
         ],
