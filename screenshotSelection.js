@@ -1,4 +1,3 @@
-// screenshotSelection.js
 (() => {
   const overlay = document.createElement('div');
   overlay.style.cssText = `
@@ -14,8 +13,8 @@
   const selection = document.createElement('div');
   selection.style.cssText = `
     position: fixed;
-    border: 2px solid blue;
-    background: rgba(0, 0, 255, 0.1);
+    border: 1px solid blue;
+    background: rgba(0, 0, 255, 0.05);
     display: none;
     z-index: 10000;
     pointer-events: none;  /* Make selection div non-interactive */
