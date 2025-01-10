@@ -57,13 +57,20 @@
     if (!isSelecting) return;
     isSelecting = false;
 
+    const rect = selection.getBoundingClientRect();
+
+	// Request zoom level from background script
+    const zoomLevel = window.devicePixelRatio; // doesn't work on high-DPI devices like those with Retina displays
+    
+    // Convert screen coordinates to page coordinates
     const area = {
-      left: parseInt(selection.style.left),
-      top: parseInt(selection.style.top),
-      width: parseInt(selection.style.width),
-      height: parseInt(selection.style.height)
+      left: Math.round(rect.left * zoomLevel),
+      top: Math.round(rect.top * zoomLevel),
+      width: Math.round(rect.width * zoomLevel),
+      height: Math.round(rect.height * zoomLevel)
     };
 
+	
     overlay.remove();
     selection.remove();
 
