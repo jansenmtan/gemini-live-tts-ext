@@ -39,57 +39,27 @@ function updatePopupButton(playbackState) {
   chrome.runtime.sendMessage({ action: "updateButton", ...playbackState });
 }
 
-// This experimental function tests image input capability for the Multimodal Live API
-// The function has been tested; the image input capability works!
-// The key to enabling the image input capability is to send these messages in order:
-//	1. audio clip containing speech
-//	2. the image
-//	3. audio clip containing silence
-function sendTestMessage(videoChunk, testPrompt, audioChunk, silentAudioChunk) {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-	  const videoMessage = {
-		  realtimeInput: {
-			  mediaChunks: [videoChunk]
-		  }
-	  };
-	  const audioMessage = {
-		  realtimeInput: {
-			  mediaChunks: [audioChunk]
-		  }
-	  };
-	  const silentAudioMessage = {
-		  realtimeInput: {
-			  mediaChunks: [silentAudioChunk]
-		  }
-	  };
-	  ws.send(JSON.stringify(audioMessage));
-	  ws.send(JSON.stringify(videoMessage));
-	  ws.send(JSON.stringify(silentAudioMessage));
-    } else {
-      console.error("WebSocket is not open. Cannot send message.");
-    }
-}
-
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "runTest") {
-    if (!audioContext) {
-      audioContext = new AudioContext({ sampleRate: audioSampleRate });
-    }
-    if (!audioStreamer) {
-      audioStreamer = new AudioStreamer(audioContext);
-	  console.log(audioStreamer);
-      audioStreamer.resume();
-    }
-	const videoChunk = { ...request.content };
-	const audioChunk = { ...request.audioPrompt };
-	const silentAudioChunk = { ...request.silentAudioPrompt };
-    if (!ws) {
-      createWebSocketClient(text, selectedVoice).then(() => {
-	    sendTestMessage(videoChunk, request.testPrompt, audioChunk, silentAudioChunk);
-	  });
-    } else {
-	  sendTestMessage(videoChunk, request.testPrompt, audioChunk, silentAudioChunk);
-	}
+  if (request.action === "captureScreenshot") {
+    chrome.tabs.captureVisibleTab(null, { format: 'jpeg' }, (dataUrl) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = request.area.width;
+        canvas.height = request.area.height;
+        
+        ctx.drawImage(img,
+          request.area.left, request.area.top,
+          request.area.width, request.area.height,
+          0, 0, request.area.width, request.area.height
+        );
+
+        const croppedDataUrl = canvas.toDataURL();
+        transcribeImage(croppedDataUrl);
+      };
+      img.src = dataUrl;
+    });
   }
 
   if (request.action === "transcribeText") {
@@ -145,6 +115,11 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     const selectedText = info.selectionText;
     transcribeText(selectedText);
   }
+});
+
+// For when the user clicks the extension icon
+chrome.browserAction.onClicked.addListener((tab) => {
+	chrome.scripting.executeScript({files: ['screenshotSelection.js'], target: {tabId: tab.id}})
 });
 
 // AudioStreamer is derived from Google's Multimodal Live API Web Console
@@ -341,12 +316,93 @@ async function transcribeText(text) {
     await audioStreamer.resume();
   }
   if (!ws) {
-    await createWebSocketClient(text, selectedVoice);
+    await createWebSocketClient(selectedVoice);
   }
   sendTextMessage(text);
+  setTimeout(() => {
+    chrome.windows.create({
+	  url: "popup.html",
+      type: "popup",
+    });
+  }, 1000);
 }
 
-function createWebSocketClient(text, voice = 'puck') { 
+async function transcribeImage(imageDataUrl) {
+  const imageMessage = realtimeInputMessage({
+    data: imageDataUrl.split(',')[1],
+    mimeType: 'image/jpeg'
+  });
+
+  if (!audioContext) {
+    audioContext = new AudioContext({ sampleRate: audioSampleRate });
+  }
+  if (!audioStreamer) {
+    audioStreamer = new AudioStreamer(audioContext);
+    await audioStreamer.resume();
+  }
+  if (!ws) {
+    await createWebSocketClient(selectedVoice);
+  }
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(defaultAudioPromptMessage));
+    ws.send(JSON.stringify(imageMessage));
+    ws.send(JSON.stringify(defaultSilentAudioPromptMessage));
+    setTimeout(() => {
+      chrome.windows.create({
+	    url: "popup.html",
+        type: "popup",
+      });
+    }, 1000);
+  } else {
+    console.error("WebSocket is not open. Cannot send message.");
+  }
+}
+
+function getContentFromBlob(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      const data = e.target.result.split(',')[1];
+      //const mimeType = e.target.result.split(',')[0].split(':')[1].split(';')[0];
+	  const mimeType = "audio/pcm";
+      resolve({ data, mimeType });
+    };
+
+    reader.onerror = (error) => {
+      reject(error);
+    };
+
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function getContentFromFile(url) {
+  let file = await fetch(chrome.runtime.getURL(url));
+  let blob = await file.blob();
+  let content = await getContentFromBlob(blob);
+  return content;
+}
+
+function realtimeInputMessage(content) {
+  return {
+	realtimeInput: {
+	  mediaChunks: [
+		content
+	  ]
+	}
+  };
+}
+
+let defaultAudioPromptMessage = null;
+let defaultSilentAudioPromptMessage = null;
+(async () => {
+  defaultAudioPromptMessage = realtimeInputMessage(await getContentFromFile("request.raw"));
+  defaultSilentAudioPromptMessage = realtimeInputMessage(await getContentFromFile("silence.raw"));
+})();
+
+
+function createWebSocketClient(voice = 'puck') { 
   return new Promise((resolve, reject) => {
     if (!apiKey) {
       console.error("API key is missing!");
