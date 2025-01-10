@@ -219,7 +219,7 @@ class AudioStreamer {
             ) {
               this.scheduleNextBuffer();
             }
-          }, 200);
+          }, 500);
         }
       }
     } else {
