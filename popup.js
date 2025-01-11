@@ -37,9 +37,12 @@ chrome.runtime.sendMessage({ action: "getPlaybackState" }, (response) => {
   updateButton(response.playbackState);
 });
 
-// Listener for messages to update button text
+// Listener for relevant messages to update button text
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "updateButton") {
+  if (request.action === "updatePlaybackState") {
+	if (request.playbackState === "stopped") {
+	  window.close();
+	}
     updateButton(request.playbackState);
   }
 });

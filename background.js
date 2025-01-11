@@ -34,11 +34,6 @@ let ws = null;
 let audioContext = null;
 let audioStreamer = null;
 
-// Send a message to the popup to update the button state
-function updatePopupButton(playbackState) {
-  chrome.runtime.sendMessage({ action: "updateButton", ...playbackState });
-}
-
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "captureScreenshot") {
     chrome.tabs.captureVisibleTab(null, { format: 'jpeg' }, (dataUrl) => {
@@ -79,7 +74,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     audioContext = null;
     audioStreamer = null;
   }
-  
+
   switch (request.action) {
     case "getPlaybackState":
       sendResponse(audioStreamer ? audioStreamer.getPlaybackState() : { playbackState: null });
@@ -98,7 +93,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	  } else if (request.action === "stopPlayback") {
 		  audioStreamer.stop();
 	  }
-	  updatePopupButton(audioStreamer.getPlaybackState());
       sendResponse(audioStreamer.getPlaybackState());
       break;
   }
@@ -122,11 +116,55 @@ chrome.browserAction.onClicked.addListener((tab) => {
 	chrome.scripting.executeScript({files: ['screenshotSelection.js'], target: {tabId: tab.id}})
 });
 
+class ObservableArray extends Array {
+  constructor(...args) {
+    super(...args);
+    this.listeners = [];
+  }
+
+  addEventListener(event, callback) {
+    if (event === 'clear' || event === 'populate') {
+      this.listeners.push(callback);
+    }
+  }
+
+  triggerEvent(event) {
+    if (event === 'clear' || event === 'populate') {
+      this.listeners.forEach(listener => listener());
+    }
+  }
+
+  set length(value) {
+    const wasEmpty = this.length === 0;
+    super.length = value;
+    if (!wasEmpty && this.length === 0) {
+      this.triggerEvent('clear');
+    }
+  }
+
+  shift() {
+    const result = super.shift();
+    if (this.length === 0) {
+      this.triggerEvent('clear');
+    }
+    return result;
+  }
+
+  push(...items) {
+    const wasEmpty = this.length === 0;
+    const result = super.push(...items);
+    if (wasEmpty && this.length > 0) {
+      this.triggerEvent('populate');
+    }
+    return result;
+  }
+}
+
 // AudioStreamer is derived from Google's Multimodal Live API Web Console
 class AudioStreamer {
   constructor(context) {
     this.context = context;
-    this.audioQueue = [];
+    this.audioQueue = new ObservableArray();
     this.isPlaying = false;
     this.sampleRate = 24000;
     this.bufferSize = 7680;
@@ -137,6 +175,13 @@ class AudioStreamer {
     this.isStreamComplete = false;
     this.checkInterval = null;
     this.initialBufferTime = 0.3; // 100ms initial buffer
+	
+	this.audioQueue.addEventListener('populate', () => {
+	  chrome.runtime.sendMessage({ action: "updatePlaybackState", ...this.getPlaybackState() });
+	});
+	this.audioQueue.addEventListener('clear', () => {
+	  chrome.runtime.sendMessage({ action: "updatePlaybackState", ...this.getPlaybackState() });
+	});
   }
 
   addPCM16(chunk) {
@@ -199,10 +244,6 @@ class AudioStreamer {
       this.scheduledTime = startTime + audioBuffer.duration;
     }
 	
-	if (this.audioQueue.length === 0) {
-		updatePopupButton({ playbackState: "stopped" });
-	}
-
     if (this.audioQueue.length === 0 && this.processingBuffer.length === 0) {
       if (this.isStreamComplete) {
         this.isPlaying = false;
@@ -219,7 +260,7 @@ class AudioStreamer {
             ) {
               this.scheduleNextBuffer();
             }
-          }, 500);
+          }, 100);
         }
       }
     } else {
@@ -234,7 +275,7 @@ class AudioStreamer {
   stop() {
     this.isPlaying = false;
     this.isStreamComplete = true;
-    this.audioQueue = [];
+    this.audioQueue.length = 0;
     this.processingBuffer = new Float32Array(0);
     this.scheduledTime = this.context.currentTime;
 
@@ -253,8 +294,6 @@ class AudioStreamer {
       this.gainNode = this.context.createGain();
       this.gainNode.connect(this.context.destination);
     }, 200);
-	
-	updatePopupButton({ playbackState: "stopped" });
   }
 
   async resume() {
@@ -264,6 +303,7 @@ class AudioStreamer {
     this.isStreamComplete = false;
     this.scheduledTime = this.context.currentTime + this.initialBufferTime;
     this.gainNode.gain.setValueAtTime(1, this.context.currentTime);
+    chrome.runtime.sendMessage({ action: "updatePlaybackState", ...this.getPlaybackState() });
   }
 
   resumePlayback() {
@@ -271,6 +311,7 @@ class AudioStreamer {
 	  this.context.resume();
       this.isPaused = false;
       this.scheduleNextBuffer();
+      chrome.runtime.sendMessage({ action: "updatePlaybackState", ...this.getPlaybackState() });
     }
   }
 
@@ -282,6 +323,7 @@ class AudioStreamer {
         clearInterval(this.checkInterval);
         this.checkInterval = null;
       }
+      chrome.runtime.sendMessage({ action: "updatePlaybackState", ...this.getPlaybackState() });
     }
   }
 
@@ -325,6 +367,7 @@ async function transcribeText(text) {
       type: "popup",
     });
   }, 1000);
+
 }
 
 async function transcribeImage(imageDataUrl) {
