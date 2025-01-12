@@ -39,7 +39,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const ctx = canvas.getContext('2d');
         canvas.width = request.area.width;
         canvas.height = request.area.height;
-        
+
         ctx.drawImage(img,
           request.area.left, request.area.top,
           request.area.width, request.area.height,
@@ -47,15 +47,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         );
 
         const croppedDataUrl = canvas.toDataURL();
-        transcribeImage(croppedDataUrl);
+        const imageMessage = realtimeInputMessage({
+          data: croppedDataUrl.split(',')[1],
+          mimeType: 'image/jpeg'
+        });
+        transcribeMessages(defaultAudioPromptMessage, imageMessage, defaultSilentAudioPromptMessage);
       };
       img.src = dataUrl;
     });
-  }
-
-  if (request.action === "transcribeText") {
-    const textToTranscribe = request.text;
-    transcribeText(textToTranscribe);
   }
 
   if (request.action === "resetWebSocket") {
@@ -103,7 +102,19 @@ chrome.contextMenus.create({
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "transcribe-text") {
     const selectedText = info.selectionText;
-    transcribeText(selectedText);
+    const textMessage = {
+      client_content: {
+        turns: [
+          {
+            parts: [{ text: selectedText }],
+            role: "user"
+          }
+        ],
+        turn_complete: true
+      }
+    };
+    transcribeMessages(textMessage);
+	  chrome.browserAction.openPopup();
   }
 });
 
@@ -112,7 +123,7 @@ chrome.browserAction.onClicked.addListener((tab) => {
 	chrome.scripting.executeScript({files: ['screenshotSelection.js'], target: {tabId: tab.id}})
 });
 
-async function transcribeText(text) {
+async function transcribeMessages(...messages) {
   if (!audioContext) {
     audioContext = new AudioContext({ sampleRate: audioSampleRate });
   }
@@ -125,42 +136,7 @@ async function transcribeText(text) {
   if (!ws) {
     await createWebSocketClient(selectedVoice);
   }
-  sendTextMessage(text);
-  setTimeout(() => {
-    chrome.windows.create({
-	  url: "popup.html",
-      type: "popup",
-    });
-  }, 1000);
-
-}
-
-async function transcribeImage(imageDataUrl) {
-  const imageMessage = realtimeInputMessage({
-    data: imageDataUrl.split(',')[1],
-    mimeType: 'image/jpeg'
-  });
-
-  if (!audioContext) {
-    audioContext = new AudioContext({ sampleRate: audioSampleRate });
-  }
-  if (!audioStreamer) {
-    audioStreamer = new AudioStreamer(audioContext);
-    await audioStreamer.resume();
-  }
-  if (!ws) {
-    await createWebSocketClient(selectedVoice);
-  }
   if (ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify(defaultAudioPromptMessage));
-    ws.send(JSON.stringify(imageMessage));
-    ws.send(JSON.stringify(defaultSilentAudioPromptMessage));
-    setTimeout(() => {
-      chrome.windows.create({
-	    url: "popup.html",
-        type: "popup",
-      });
-    }, 1000);
 	for (const message of messages) ws.send(JSON.stringify(message));
   } else {
     console.error("WebSocket is not open. Cannot send message.");
@@ -211,7 +187,7 @@ let defaultSilentAudioPromptMessage = null;
 })();
 
 
-function createWebSocketClient(voice = 'puck') { 
+function createWebSocketClient(voice = 'puck') {
   return new Promise((resolve, reject) => {
     if (!apiKey) {
       console.error("API key is missing!");
@@ -262,13 +238,13 @@ function createWebSocketClient(voice = 'puck') {
             if (part.inlineData && part.inlineData.mimeType === 'audio/pcm;rate=24000') {
               const pcmDataBase64 = part.inlineData.data;
               const pcmData = atob(pcmDataBase64);
-              
+
               // Convert to Uint8Array
               const pcmDataBytes = new Uint8Array(pcmData.length);
               for (let i = 0; i < pcmData.length; i++) {
                 pcmDataBytes[i] = pcmData.charCodeAt(i);
               }
-              
+
               // Add to audio streamer
               audioStreamer.addPCM16(pcmDataBytes);
             }
@@ -291,23 +267,3 @@ function createWebSocketClient(voice = 'puck') {
     };
   });
 }
-
-function sendTextMessage(text) {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    const message = {
-      client_content: {
-        turns: [
-          {
-            parts: [{ text: text }],
-            role: "user"
-          }
-        ],
-        turn_complete: true
-      }
-    };
-    ws.send(JSON.stringify(message));
-  } else {
-    console.error("WebSocket is not open. Cannot send message.");
-  }
-}
-
