@@ -25,6 +25,15 @@
       <option value="aoede">Aoede</option>
     </select>
   </div>
+  <div class="field">
+    <details>
+        <summary>Advanced settings</summary>
+        <div class="field">
+          <label for="systemPrompt" title="Instructions Gemini will follow for text and image inputs.&#013Leave blank to use the default system prompt.">System Prompt:</label><br>
+		  <textarea id="systemPrompt" rows="4" placeholder="You generate speech from given text."></textarea>
+        </div>
+    </details>
+  </div>
   <button id="save">Save</button>
   <div id="status"></div>
   <script src="options.js"></script>

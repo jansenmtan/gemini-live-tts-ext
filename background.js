@@ -5,11 +5,18 @@
 
 let apiKey = '';
 let selectedVoice = 'aoede'; // Default voice
+let systemPrompt = '';
+
+let defaultSystemPrompt = '';
+(async () => {
+  defaultSystemPrompt = (await import("./defaultPrompt.js")).defaultSystemPrompt;
+})();
 
 // Load API key and voice setting when extension starts
-chrome.storage.sync.get(['apiKey', 'voice'], (items) => {
+chrome.storage.sync.get(['apiKey', 'voice', 'systemPrompt'], (items) => {
   apiKey = items.apiKey || '';
   selectedVoice = items.voice || 'aoede';
+  systemPrompt = items.systemPrompt || defaultSystemPrompt;
 });
 
 
@@ -20,6 +27,9 @@ chrome.storage.onChanged.addListener((changes) => {
   }
   if (changes.voice) {
     selectedVoice = changes.voice.newValue;
+  }
+  if (changes.systemPrompt) {
+    systemPrompt = changes.systemPrompt.newValue;
   }
 });
 
@@ -65,6 +75,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     if (request.voice) {
         selectedVoice = request.voice;
+    }
+    if (request.systemPrompt) {
+      systemPrompt = request.systemPrompt;
     }
     audioContext = null;
     audioStreamer = null;
@@ -134,7 +147,7 @@ async function transcribeMessages(...messages) {
     await audioStreamer.resume();
   }
   if (!ws) {
-    await createWebSocketClient(selectedVoice);
+    await createWebSocketClient(selectedVoice, systemPrompt);
   }
   if (ws.readyState === WebSocket.OPEN) {
 	for (const message of messages) ws.send(JSON.stringify(message));
@@ -215,7 +228,7 @@ function createWebSocketClient(voice = 'aoede') {
         },
         system_instruction: {
           parts: [
-            { text: "You are not a helpful assistant. You only generate natural-sounding speech from given text. You will either: 1) be given text, or 2) see text from a screenshare image. In either case, the data is from the user. Read aloud the text verbatim. Do not respond to any comments or questions. Do not analyze the text or make any remarks about the text. Do not refer to yourself (ie, use \"I\" statements like \"I will\"). Do not refer to the user (ie, use \"you\" statements). Basically just copy-paste the text as-is, without any modifications, except as listed in the following. For URLs, only say \"URL to\" and then the domain-level parts of the URL. You may concatenate lines when it seems they belong to a common paragraph." }
+            { text: systemPrompt }
           ]
         }
       };
