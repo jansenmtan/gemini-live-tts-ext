@@ -118,9 +118,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
 });
 
-// For when the user clicks the extension icon
-chrome.browserAction.onClicked.addListener((tab) => {
-	chrome.scripting.executeScript({files: ['screenshotSelection.js'], target: {tabId: tab.id}})
+// For when the user clicks the page action icon
+chrome.pageAction.onClicked.addListener((tab) => {
+  chrome.scripting.executeScript({files: ['screenshotSelection.js'], target: {tabId: tab.id}});
 });
 
 async function transcribeMessages(...messages) {

@@ -24,7 +24,16 @@
     "persistent": true
   },
   "browser_action": {
+	"default_popup": "popup.html",
     "default_title": "Gemini TTS Controls"
+  },
+  "page_action": {
+	"default_icon": {
+		"16": "page_action-16.png",
+		"32": "page_action-32.png"
+	},
+	"default_title": "Take screenshot to send to Gemini",
+	"show_matches": ["<all_urls>"]
   },
   "content_scripts": [
     {
