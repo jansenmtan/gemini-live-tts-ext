@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   chrome.storage.sync.get(['apiKey', 'voice'], (items) => {
     document.getElementById('apiKey').value = items.apiKey || '';
-    document.getElementById('voiceSelect').value = items.voice || 'puck'; // Load saved voice
+    document.getElementById('voiceSelect').value = items.voice || 'aoede';
   });
 });
 

@@ -4,12 +4,12 @@
  */
 
 let apiKey = '';
-let selectedVoice = 'puck'; // Default voice
+let selectedVoice = 'aoede'; // Default voice
 
 // Load API key and voice setting when extension starts
 chrome.storage.sync.get(['apiKey', 'voice'], (items) => {
   apiKey = items.apiKey || '';
-  selectedVoice = items.voice || 'puck';
+  selectedVoice = items.voice || 'aoede';
 });
 
 
@@ -187,7 +187,7 @@ let defaultSilentAudioPromptMessage = null;
 })();
 
 
-function createWebSocketClient(voice = 'puck') {
+function createWebSocketClient(voice = 'aoede') {
   return new Promise((resolve, reject) => {
     if (!apiKey) {
       console.error("API key is missing!");
