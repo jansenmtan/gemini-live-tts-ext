@@ -68,6 +68,7 @@ export class AudioStreamer {
     this.initialBufferTime = 0.3;
     this.activeSourceNodes = new ObservableSet();
     this.isPaused = false;
+    this.volume = 1.0;
 
     this.activeSourceNodes.addEventListener('populate', () => {
       queueMicrotask(() => this.updatePlaybackState());
@@ -242,6 +243,21 @@ export class AudioStreamer {
         this.scheduleNextBuffer();
       }
     }
+  }
+
+  // `setVolume`/`getVolume` uses ideas from
+  // https://www.dr-lex.be/info-stuff/volumecontrols.html
+  // and https://www.robotplanet.dk/audio/audio_gui_design/
+  setVolume(nominalVolume) {
+    // nominalVolume should be in range [0, 1]
+    let clampedValue = Math.max(0, Math.min(1, nominalVolume));
+    this.volume = clampedValue**3;
+    this.gainNode.gain.setValueAtTime(this.volume, this.context.currentTime);
+  }
+
+  getVolume() {
+    let nominalVolume = this.volume**(1/3);
+    return nominalVolume;
   }
 
   getPlaybackState() {

@@ -1,9 +1,11 @@
 const playPauseButton = document.getElementById('playPause');
 const stopButton = document.getElementById('stop');
 const statusDiv = document.getElementById('status');
+const volumeControl = document.getElementById('volumeControl');
+const volumeValue = document.getElementById('volumeValue');
 
 function updateButton(playbackState) {
-  playPauseButton.textContent = playbackState === "playing" ? 'Pause' : 'Play';
+  playPauseButton.textContent = playbackState === "playing" ? '⏸' : '▶';
   playPauseButton.disabled = playbackState === "stopped" ? true : false;
   switch (playbackState) {
 	case "playing":
@@ -21,7 +23,7 @@ function updateButton(playbackState) {
 }
 
 playPauseButton.addEventListener('click', () => {
-  chrome.runtime.sendMessage({ action: playPauseButton.textContent === 'Play' ? "resumePlayback" : "pausePlayback" }, (response) => {
+  chrome.runtime.sendMessage({ action: playPauseButton.textContent === '▶' ? "resumePlayback" : "pausePlayback" }, (response) => {
 	updateButton(response.playbackState);
   });
 });
@@ -32,9 +34,25 @@ stopButton.addEventListener('click', () => {
   });
 });
 
+volumeControl.addEventListener('input', () => {
+  const volume = volumeControl.value;
+  volumeValue.textContent = `${volume}%`;
+  chrome.runtime.sendMessage({
+    action: "setVolume",
+    volume: volume / 100
+  });
+});
+
 // Request initial playback state on popup load
 chrome.runtime.sendMessage({ action: "getPlaybackState" }, (response) => {
   updateButton(response.playbackState);
+});
+
+chrome.runtime.sendMessage({ action: "getVolume" }, (response) => {
+  if (response && response.volume !== undefined) {
+    volumeControl.value = response.volume * 100;
+    volumeValue.textContent = `${Math.round(response.volume * 100)}%`;
+  }
 });
 
 // Listener for relevant messages to update button text

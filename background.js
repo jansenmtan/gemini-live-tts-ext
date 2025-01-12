@@ -87,6 +87,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case "getPlaybackState":
       sendResponse(audioStreamer ? audioStreamer.getPlaybackState() : { playbackState: null });
       break;
+    case "setVolume":
+      if (audioStreamer) {
+        audioStreamer.setVolume(request.volume);
+      }
+      break;
+    case "getVolume":
+      sendResponse({
+        volume: audioStreamer ? audioStreamer.getVolume() : 1.0
+      });
+      break;
     case "pausePlayback":
     case "resumePlayback":
 	case "stopPlayback":
