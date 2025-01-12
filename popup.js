@@ -3,7 +3,7 @@ const stopButton = document.getElementById('stop');
 const statusDiv = document.getElementById('status');
 
 function updateButton(playbackState) {
-  playPauseButton.textContent = playbackState === "paused" ? 'Play' : 'Pause';
+  playPauseButton.textContent = playbackState === "playing" ? 'Pause' : 'Play';
   playPauseButton.disabled = playbackState === "stopped" ? true : false;
   switch (playbackState) {
 	case "playing":

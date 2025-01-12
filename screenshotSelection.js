@@ -52,7 +52,7 @@
     selection.style.height = height + 'px';
   });
 
-  document.addEventListener('mouseup', (e) => {
+  document.addEventListener('mouseup', async (e) => {
     if (!isSelecting) return;
     isSelecting = false;
 

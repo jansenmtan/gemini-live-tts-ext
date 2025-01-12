@@ -260,6 +260,9 @@ function createWebSocketClient(voice = 'puck') {
 
     ws.onclose = (event) => {
       console.log('WebSocket closed:', event);
+	  // NOTES: some common close reasons:
+	  //	[ORIGINAL ERROR] RPC::DEADLINE_EXCEEDED
+	  //	[ORIGINAL ERROR] throttling::THROTTLED_CLIENT
       ws = null;
       if (audioStreamer) {
         audioStreamer.complete();
