@@ -209,6 +209,22 @@ let defaultSilentAudioPromptMessage = null;
   defaultSilentAudioPromptMessage = realtimeInputMessage(await getContentFromFile("silence.raw"));
 })();
 
+browser.runtime.onInstalled.addListener(async ({ reason, temporary }) => {
+  //if (temporary) return; // skip during development
+  switch (reason) {
+    case "install":
+      {
+        const url = browser.runtime.getURL("onboarding.html");
+        await browser.tabs.create({ url });
+      }
+      break;
+    case "update":
+      {
+        // nothing for now
+      }
+      break;
+  }
+});
 
 function createWebSocketClient(voice = 'aoede') {
   return new Promise((resolve, reject) => {
