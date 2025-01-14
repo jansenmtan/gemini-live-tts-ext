@@ -1,25 +1,11 @@
 const playPauseButton = document.getElementById('playPause');
 const stopButton = document.getElementById('stop');
-const statusDiv = document.getElementById('status');
 const volumeControl = document.getElementById('volumeControl');
 const volumeValue = document.getElementById('volumeValue');
 
 function updateButton(playbackState) {
   playPauseButton.textContent = playbackState === "playing" ? '⏸' : '▶';
   playPauseButton.disabled = playbackState === "stopped" ? true : false;
-  switch (playbackState) {
-	case "playing":
-	  statusDiv.textContent = 'Playing audio';
-	  break;
-	case "paused":
-	  statusDiv.textContent = 'Paused audio';
-	  break;
-	case "stopped":
-	  statusDiv.textContent = 'No audio to play';
-	  break;
-	default:
-	  console.log(`updateButton default case:`, playbackState);
-  }
 }
 
 playPauseButton.addEventListener('click', () => {
