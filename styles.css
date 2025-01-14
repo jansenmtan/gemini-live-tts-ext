@@ -1,0 +1,114 @@
+/* Base styles */
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  color: #1a1a1a;
+}
+
+.container {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+h3 {
+  margin-top: 0;
+}
+
+h1 {
+  margin-top: -1%;
+}
+
+/* Cards and sections */
+.step {
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #4a90e2;
+}
+
+.step h3 {
+  color: #2c5282;
+}
+
+.tips {
+  background: #f0f7ff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-top: 2rem;
+}
+
+.tip {
+  margin-bottom: 1rem;
+}
+
+/* UI elements */
+.field {
+  margin-bottom: 15px;
+  box-sizing: border-box;
+}
+
+input[type="text"],
+textarea,
+select {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+input[type="text"]:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+button {
+  padding: 8px 16px;
+  background: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button:hover {
+  background: #357abd;
+}
+
+.icon {
+  vertical-align: middle;
+}
+
+/* Labels */
+label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+/* Utility classes */
+.shortcut {
+  background: #e2e8f0;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.warning {
+  background: #fff5f5;
+  border-left: 4px solid #f56565;
+  padding: 1rem;
+  margin: 1rem 0;
+}

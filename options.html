@@ -2,40 +2,57 @@
 <html>
 <head>
   <title>Gemini TTS Settings</title>
-  <style>
-    body { padding: 20px; }
-    .field { margin-bottom: 15px; }
-    input[type="text"] { width: 300px; padding: 5px; }
-    select { padding: 5px; }
+   <link rel="stylesheet" href="styles.css">
+   <style>
+    details {
+      margin-top: 1rem;
+    }
+
+    summary {
+      cursor: pointer;
+      padding: 8px 0;
+    }
+
+    #status {
+      margin-top: 1rem;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
-  <h2>Settings</h2>
-  <div class="field">
-    <label for="apiKey">Gemini API Key:</label><br>
-    <input type="text" id="apiKey">
-  </div>
-  <div class="field">
-    <label for="voiceSelect">Voice:</label><br>
-    <select id="voiceSelect">
-      <option value="puck">Puck</option>
-      <option value="charon">Charon</option>
-      <option value="kore">Kore</option>
-      <option value="fenrir">Fenrir</option>
-      <option value="aoede">Aoede</option>
-    </select>
-  </div>
-  <div class="field">
-    <details>
+  <div class="container">
+    <h2><img src="icon-32.png" class="icon" /> Settings</h2>
+    <div class="step">
+      <h3>API Configuration</h3>
+      <div class="field">
+        <label for="apiKey">Gemini API Key:</label>
+        <input type="text" id="apiKey">
+      </div>
+      <div class="field">
+        <label for="voiceSelect">Voice:</label>
+        <select id="voiceSelect">
+          <option value="puck">Puck</option>
+          <option value="charon">Charon</option>
+          <option value="kore">Kore</option>
+          <option value="fenrir">Fenrir</option>
+          <option value="aoede">Aoede</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <details>
         <summary>Advanced settings</summary>
         <div class="field">
-          <label for="systemPrompt" title="Instructions Gemini will follow for text and image inputs.&#013Leave blank to use the default system prompt.">System Prompt:</label><br>
-		  <textarea id="systemPrompt" rows="4" placeholder="You generate speech from given text."></textarea>
+          <label for="systemPrompt" title="Instructions Gemini will follow for text and image inputs.&#013Leave blank to use the default system prompt.">System Prompt:</label>
+          <textarea id="systemPrompt" rows="4" placeholder="You generate speech from given text." style="width: 100%;"></textarea>
         </div>
-    </details>
+      </details>
+    </div>
+
+    <button id="save">Save</button>
+    <div id="status"></div>
   </div>
-  <button id="save">Save</button>
-  <div id="status"></div>
   <script src="options.js"></script>
 </body>
 </html>
