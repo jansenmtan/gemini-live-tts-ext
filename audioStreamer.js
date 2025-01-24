@@ -260,6 +260,12 @@ export class AudioStreamer {
     return nominalVolume;
   }
 
+  // sometimes the volume gets reset to 100% on new transcriptions
+  // not sure why this happens, but `refreshVolume` is for when that happens
+  refreshVolume() {
+    this.gainNode.gain.setValueAtTime(this.volume, this.context.currentTime);
+  }
+
   getPlaybackState() {
     if (!this.activeSourceNodes.size) {
       return { playbackState: "stopped" };

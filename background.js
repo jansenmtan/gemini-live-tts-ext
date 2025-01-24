@@ -153,14 +153,15 @@ async function transcribeMessages(...messages) {
   if (!audioStreamer) {
     const { AudioStreamer } = await import("./audioStreamer.js");
     audioStreamer = new AudioStreamer(audioContext);
-	console.log(audioStreamer);
+    console.log(audioStreamer);
     await audioStreamer.resume();
   }
   if (!ws) {
     await createWebSocketClient(selectedVoice, systemPrompt);
   }
   if (ws.readyState === WebSocket.OPEN) {
-	for (const message of messages) ws.send(JSON.stringify(message));
+    audioStreamer.refreshVolume(); // ensure volume is set
+    for (const message of messages) ws.send(JSON.stringify(message));
   } else {
     console.error("WebSocket is not open. Cannot send message.");
   }
