@@ -40,31 +40,44 @@ let ws = null;
 let audioContext = null;
 let audioStreamer = null;
 
+function cropImage(dataUrl, area) {
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = area.width;
+    canvas.height = area.height;
+
+    ctx.drawImage(img,
+      area.left, area.top,
+      area.width, area.height,
+      0, 0, area.width, area.height
+    );
+
+    const croppedDataUrl = canvas.toDataURL();
+    const imageMessage = realtimeInputMessage({
+      data: croppedDataUrl.split(',')[1],
+      mimeType: 'image/jpeg'
+    });
+    const textMessage = {
+      client_content: {
+        turns: [
+          {
+            parts: [{ text: "" }],
+            role: "user"
+          }
+        ],
+        turn_complete: true
+      }
+    };
+    transcribeMessages(imageMessage, defaultAudioPromptMessage, imageMessage, defaultSilentAudioPromptMessage);
+  };
+  img.src = dataUrl;
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "captureScreenshot") {
-    chrome.tabs.captureVisibleTab(null, { format: 'jpeg' }, (dataUrl) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = request.area.width;
-        canvas.height = request.area.height;
-
-        ctx.drawImage(img,
-          request.area.left, request.area.top,
-          request.area.width, request.area.height,
-          0, 0, request.area.width, request.area.height
-        );
-
-        const croppedDataUrl = canvas.toDataURL();
-        const imageMessage = realtimeInputMessage({
-          data: croppedDataUrl.split(',')[1],
-          mimeType: 'image/jpeg'
-        });
-        transcribeMessages(defaultAudioPromptMessage, imageMessage, defaultSilentAudioPromptMessage);
-      };
-      img.src = dataUrl;
-    });
+    chrome.tabs.captureVisibleTab(null, { format: 'jpeg', quality: 100 }, (dataUrl) => { cropImage(dataUrl, request.area); });
   }
 
   if (request.action === "resetWebSocket") {
@@ -142,8 +155,25 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 // For when the user clicks the page action icon
-chrome.pageAction.onClicked.addListener((tab) => {
-  chrome.scripting.executeScript({files: ['screenshotSelection.js'], target: {tabId: tab.id}});
+chrome.pageAction.onClicked.addListener(async (tab) => {
+  let currentTab = (await browser.tabs.query({ active: true, currentWindow: true }))[0];
+  let isFile = currentTab.url.startsWith("file://") || currentTab.title.endsWith(".pdf");
+  if (!isFile) {
+    // can do script injection
+    console.log("INJECTING SCRIPT.");
+    chrome.scripting.executeScript({files: ['screenshotSelection.js'], target: {tabId: tab.id}});
+  } else {
+    // cannot do script injection. 
+    // just take a screenshot of the whole tab and hope for the best.
+    console.log("CAN'T INJECT SCRIPT.");
+    let area = {
+      left: 0,
+      top: 0,
+      width: currentTab.width,
+      height: currentTab.height
+    };
+    chrome.tabs.captureVisibleTab(null, { format: 'jpeg', quality: 100 }, (dataUrl) => { cropImage(dataUrl, area); });
+  }
 });
 
 async function transcribeMessages(...messages) {
