@@ -3,6 +3,17 @@ const stopButton = document.getElementById('stop');
 const volumeControl = document.getElementById('volumeControl');
 const volumeValue = document.getElementById('volumeValue');
 
+// Click handlers for header buttons
+document.querySelector('.donate-btn').addEventListener('click', () => {
+  // Replace with your actual donation link
+  window.open('https://ko-fi.com/jansentan', '_blank');
+});
+
+document.querySelector('.settings-btn').addEventListener('click', () => {
+  //chrome.runtime.openOptionsPage();
+  window.open('options.html', '_blank');
+});
+
 function updateButton(playbackState) {
   playPauseButton.textContent = playbackState === "playing" ? '⏸' : '▶';
   playPauseButton.disabled = playbackState === "stopped" ? true : false;

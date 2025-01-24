@@ -46,6 +46,59 @@ h1 {
   margin-bottom: 1rem;
 }
 
+/* Header Banner Styles */
+.header-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-right {
+  display: flex;
+  gap: 6px;
+}
+
+.extension-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.extension-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.header-btn {
+  padding: 4px 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  transition: opacity 0.2s;
+  line-height: 1;
+}
+
+.header-btn:hover {
+  opacity: 0.8;
+}
+
+.donate-btn {
+  color: #e53e3e;
+}
+
+.settings-btn {
+  color: #4a5568;
+}
+
 /* UI elements */
 .field {
   margin-bottom: 15px;
