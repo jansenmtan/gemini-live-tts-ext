@@ -1,7 +1,7 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Gemini Live Text-to-Speech",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Transcribes selected text to audio using Google Gemini Multimodal Live API.",
   "browser_specific_settings": {
     "gecko": {
@@ -13,7 +13,10 @@
     "storage",
     "contextMenus",
     "notifications",
-	"scripting",
+    "offscreen",
+    "scripting"
+  ],
+  "host_permissions": [
     "<all_urls>"
   ],
   "options_ui": {
@@ -22,9 +25,10 @@
   },
   "background": {
     "scripts": ["background.js"],
-    "persistent": true
+    "service_worker": "background.js",
+    "type": "module"
   },
-  "browser_action": {
+  "action": {
     "default_popup": "popup.html",
     "default_title": "Gemini TTS Controls",
 	  "default_icon": {
@@ -34,14 +38,6 @@
   "icons": {
     "16": "icon-16.png",
     "32": "icon-32.png"
-  },
-  "page_action": {
-	  "default_icon": {
-		  "16": "page_action-16.png",
-		  "32": "page_action-32.png"
-	  },
-	"default_title": "Take screenshot to send to Gemini",
-	"show_matches": ["<all_urls>"]
   },
   "content_scripts": [
     {

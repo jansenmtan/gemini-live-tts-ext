@@ -2,15 +2,12 @@
  * Copyright (c) 2025 Jansen Tan
  * MIT License
  */
+import { defaultSystemPrompt } from "./defaultPrompt.js";
+import { AudioStreamer } from "./audioStreamer.js";
 
 let apiKey = '';
 let selectedVoice = 'aoede'; // Default voice
 let systemPrompt = '';
-
-let defaultSystemPrompt = '';
-(async () => {
-  defaultSystemPrompt = (await import("./defaultPrompt.js")).defaultSystemPrompt;
-})();
 
 class APIKeyError extends Error {
   constructor(message) {
@@ -105,6 +102,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           break;
         case "getPlaybackState":
           sendResponse(getPlaybackState());
+          break;
+        case "updatePlaybackState":
+          updateActionButton(request.playbackState);
           break;
         case "setVolume":
           handleVolumeChange(request);
@@ -252,13 +252,33 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       }
     };
     transcribeMessages(textMessage);
-	  chrome.browserAction.openPopup();
+	  chrome.action.openPopup();
   }
 });
 
-// For when the user clicks the page action icon
-chrome.pageAction.onClicked.addListener(async (tab) => {
-  let currentTab = (await browser.tabs.query({ active: true, currentWindow: true }))[0];
+function updateActionButton(playbackState) {
+  if (playbackState === "stopped" || playbackState === null) {
+    // Set up for screenshot capture mode
+    chrome.action.setPopup({ popup: "" }); // Remove popup
+    chrome.action.setTitle({ title: "Take screenshot to send to Gemini" });
+    chrome.action.setIcon({ path: "page_action-32.png" });
+  } else {
+    // Set up for playback control mode
+    chrome.action.setPopup({ popup: "popup.html" });
+    chrome.action.setTitle({ title: "Gemini TTS Controls" });
+    chrome.action.setIcon({ path: "icon-32.png" });
+  }
+}
+
+// For when the user clicks the action icon
+chrome.action.onClicked.addListener(async (tab) => {
+  const state = audioStreamer.getPlaybackState().playbackState;
+  if (state === "playing" || state === "paused") {
+    // open popup
+    chrome.action.openPopup();
+    return;
+  } // otherwise, take screenshot
+  let currentTab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
   let isFile = currentTab.url.startsWith("file://") || currentTab.title.endsWith(".pdf");
   if (!isFile) {
     // can do script injection
@@ -353,13 +373,13 @@ let defaultSilentAudioPromptMessage = null;
   defaultSilentAudioPromptMessage = realtimeInputMessage(await getContentFromFile("silence.raw"));
 })();
 
-browser.runtime.onInstalled.addListener(async ({ reason, temporary }) => {
+chrome.runtime.onInstalled.addListener(async ({ reason, temporary }) => {
   //if (temporary) return; // skip during development
   switch (reason) {
     case "install":
       {
-        const url = browser.runtime.getURL("onboarding.html");
-        await browser.tabs.create({ url });
+        const url = chrome.runtime.getURL("onboarding.html");
+        await chrome.tabs.create({ url });
       }
       break;
     case "update":

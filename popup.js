@@ -55,9 +55,9 @@ chrome.runtime.sendMessage({ action: "getVolume" }, (response) => {
 // Listener for relevant messages to update button text
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "updatePlaybackState") {
-	if (request.playbackState === "stopped") {
-	  window.close();
-	}
+    if (request.playbackState === "stopped") {
+      window.close();
+    }
     updateButton(request.playbackState);
   }
 });
