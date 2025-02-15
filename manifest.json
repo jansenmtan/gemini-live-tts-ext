@@ -16,9 +16,6 @@
     "offscreen",
     "scripting"
   ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
   "options_ui": {
     "page": "options.html",
     "open_in_tab": false
@@ -41,7 +38,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["*://*/*, file:///*"],
       "js": ["content.js"]
     }
   ]
