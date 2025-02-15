@@ -26,10 +26,10 @@
     "type": "module"
   },
   "action": {
-    "default_popup": "popup.html",
-    "default_title": "Gemini TTS Controls",
+    "default_popup": "",
+    "default_title": "Take screenshot to send to Gemini",
 	  "default_icon": {
-		  "32": "icon-32.png"
+		  "32": "page_action-32.png"
 	  }
   },
   "icons": {
