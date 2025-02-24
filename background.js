@@ -133,7 +133,7 @@ async function transcribeMessages(...messages) {
 async function handleScreenshotCapture(area) {
   chrome.tabs.captureVisibleTab(null, { format: 'jpeg', quality: 100 }, (dataUrl) => {
     if (chrome.runtime.lastError) {
-      reject(new Error(`Screenshot capture failed: ${chrome.runtime.lastError.message}`));
+      notifyError(new Error(`Screenshot capture failed: ${chrome.runtime.lastError.message}`));
       return;
     }
     chrome.runtime.sendMessage({ action: 'cropScreenshotAndTranscribe', apiKey: apiKey, selectedVoice: selectedVoice, systemPrompt: systemPrompt, dataUrl: dataUrl, area: area });
