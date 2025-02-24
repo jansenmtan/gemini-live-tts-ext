@@ -69,16 +69,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true; // Keep message channel open for async response
 });
 
-async function notifyError(error) {
-  console.log(error);
-  chrome.runtime.sendMessage({ action: 'notifyError', error: error });
-}
+(async () => {
+  const { CustomError, APIKeyError, WebSocketError } = await import("./errors.js");
+})();
 
-class APIKeyError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'APIKeyError';
-  }
+async function notifyError(error) {
+  chrome.runtime.sendMessage({
+    action: 'notifyError',
+    name: error.name,
+    message: error.message,
+    stack: error.stack,
+  });
 }
 
 // Validate API key format
@@ -117,13 +118,6 @@ async function transcribeMessages(...messages) {
   } catch (error) {
     notifyError(error);
     throw error;
-  }
-}
-
-class WebSocketError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'WebSocketError';
   }
 }
 

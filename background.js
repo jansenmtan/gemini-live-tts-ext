@@ -4,30 +4,18 @@
  */
 import { defaultSystemPrompt } from "./defaultPrompt.js";
 import { AudioStreamer } from "./audioStreamer.js";
+import { CustomError, APIKeyError, WebSocketError } from "./errors.js";
 
 let apiKey = '';
 let selectedVoice = 'aoede'; // Default voice
 let systemPrompt = '';
 
-class APIKeyError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'APIKeyError';
-  }
-}
-
-class WebSocketError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'WebSocketError';
-  }
-}
-
 async function notifyError(error) {
+  console.error(error);
   let message = '';
-  if (error instanceof APIKeyError) {
+  if (error.name == 'APIKeyError') {
     message = `API Key Error: ${error.message}. Please check your API key in the extension settings.`;
-  } else if (error instanceof WebSocketError) {
+  } else if (error.name == 'WebSocketError') {
     message = `Connection Error: ${error.message}.`;
   } else {
     message = `Error: ${error.message}`;
@@ -90,7 +78,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           updateActionButton(request.playbackState);
           break;
         case "notifyError":
-          notifyError(request.error);
+          let error = new Error(request.message);
+          error.name = request.name;
+          error.stack = request.stack;
+          notifyError(error);
           break;
       }
     } catch (error) {
