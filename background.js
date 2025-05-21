@@ -210,7 +210,7 @@ chrome.action.onClicked.addListener(async (tab) => {
     console.log("INJECTING SCRIPT.");
     chrome.scripting.executeScript({files: ['screenshotSelection.js'], target: {tabId: tab.id}});
   } else {
-    // cannot do script injection. 
+    // cannot do script injection.
     // just take a screenshot of the whole tab and hope for the best.
     console.log("CAN'T INJECT SCRIPT.");
     let area = {
