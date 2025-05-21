@@ -26,7 +26,10 @@
       <h3>API Configuration</h3>
       <div class="field">
         <label for="apiKey">Gemini API Key:</label>
-        <input type="text" id="apiKey">
+        <div class="api-key-wrapper" style="display: flex; align-items: center;">
+          <input class="api-key-input" type="text" id="apiKey" style="flex-grow: 1;">
+          <button id="toggleApiKeyVisibility" type="button" style="padding: 4px 8px; font-size: 12px; margin-left: 5px;">Show</button>
+        </div>
       </div>
       <div class="field">
         <label for="voiceSelect">Voice:</label>

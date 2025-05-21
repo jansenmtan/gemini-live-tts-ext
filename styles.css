@@ -130,6 +130,10 @@ select:focus {
   box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 }
 
+.api-key-input {
+  -webkit-text-security: disc;
+}
+
 button {
   padding: 8px 16px;
   background: #4a90e2;
