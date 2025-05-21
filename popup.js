@@ -14,6 +14,10 @@ document.querySelector('.settings-btn').addEventListener('click', () => {
   window.open('options.html', '_blank');
 });
 
+document.querySelector('.faq-btn').addEventListener('click', () => {
+  window.open('faq.html', '_blank');
+});
+
 function updateButton(playbackState) {
   playPauseButton.textContent = playbackState === "playing" ? '⏸' : '▶';
   playPauseButton.disabled = playbackState === "stopped" ? true : false;
