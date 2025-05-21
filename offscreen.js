@@ -6,6 +6,21 @@ let apiKey = '';
 let selectedVoice = 'aoede'; // Default voice
 let systemPrompt = '';
 
+// Debounce utility function
+function debounce(func, delay) {
+  let timeout;
+  return function(...args) {
+    const context = this;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(context, args), delay);
+  };
+}
+
+// Debounced function to request background script to save volume
+const debouncedRequestSaveVolume = debounce((volume) => {
+  chrome.runtime.sendMessage({ action: 'requestSaveVolume', volume: volume });
+}, 500); // 500ms delay
+
 const modelId = "gemini-2.0-flash-exp";
 const audioSampleRate = 24000;
 
@@ -13,7 +28,18 @@ async function initializeAudio() {
   audioContext = new AudioContext({ sampleRate: audioSampleRate });
   const { AudioStreamer } = await import("./audioStreamer.js");
   audioStreamer = new AudioStreamer(audioContext);
-  await audioStreamer.resume();
+  await audioStreamer.resume(); // Initialize with default volume
+
+  // Request initial volume from background script
+  chrome.runtime.sendMessage({ action: "getInitialVolume" }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.error(`Error getting initial volume: ${chrome.runtime.lastError.message}`);
+      return;
+    }
+    if (response && response.volume !== undefined && audioStreamer) {
+      audioStreamer.setVolume(response.volume);
+    }
+  });
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -42,7 +68,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           sendResponse(audioStreamer ? audioStreamer.getPlaybackState() : { playbackState: null });
           break;
         case 'setVolume':
-          audioStreamer.setVolume(request.volume);
+          if (audioStreamer) {
+            audioStreamer.setVolume(request.volume);
+            // Request background script to save volume using the debounced function
+            debouncedRequestSaveVolume(request.volume);
+          }
           break;
         case 'getVolume':
           sendResponse({ volume: audioStreamer ? audioStreamer.getVolume() : 1.0 });

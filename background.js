@@ -9,6 +9,7 @@ import { CustomError, APIKeyError, WebSocketError } from "./errors.js";
 let apiKey = '';
 let selectedVoice = 'aoede'; // Default voice
 let systemPrompt = '';
+let currentVolume = 1.0; // Default volume, will be updated from storage
 
 async function notifyError(error) {
   console.error(error);
@@ -40,12 +41,13 @@ function validateAPIKey(key) {
 }
 
 // Load API key and other settings when extension starts
-chrome.storage.sync.get(['apiKey', 'voice', 'systemPrompt'], (items) => {
+chrome.storage.sync.get(['apiKey', 'voice', 'systemPrompt', 'volume'], (items) => {
   try {
     if (items.apiKey) validateAPIKey(items.apiKey);
     apiKey = items.apiKey || '';
     selectedVoice = items.voice || 'aoede';
     systemPrompt = items.systemPrompt || defaultSystemPrompt;
+    currentVolume = items.volume !== undefined ? items.volume : 1.0;
   } catch (error) {
     console.error('Settings loading error:', error);
     notifyError(error);
@@ -61,6 +63,7 @@ chrome.storage.onChanged.addListener((changes) => {
     }
     if (changes.voice) selectedVoice = changes.voice.newValue;
     if (changes.systemPrompt) systemPrompt = changes.systemPrompt.newValue;
+    if (changes.volume) currentVolume = changes.volume.newValue;
   } catch (error) {
     console.error('Settings change error:', error);
     notifyError(error);
@@ -83,6 +86,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           error.stack = request.stack;
           notifyError(error);
           break;
+        case "requestSaveVolume":
+          if (request.volume !== undefined) {
+            currentVolume = request.volume;
+            chrome.storage.sync.set({ volume: currentVolume }, () => {
+              if (chrome.runtime.lastError) {
+                console.error(`Error saving volume: ${chrome.runtime.lastError.message}`);
+              }
+            });
+          }
+          break;
+        case "getInitialVolume":
+          sendResponse({ volume: currentVolume });
+          return;
       }
     } catch (error) {
       console.error(`Error handling ${request.action}:`, error);
