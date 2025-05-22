@@ -6,6 +6,7 @@
 let apiKey = '';
 let selectedVoice = 'aoede'; // Default voice
 let systemPrompt = '';
+let currentVolume = 1.0; // Default volume, will be updated from storage
 
 let defaultSystemPrompt = '';
 (async () => {
@@ -58,12 +59,13 @@ async function notifyError(error) {
 }
 
 // Load API key and other settings when extension starts
-chrome.storage.sync.get(['apiKey', 'voice', 'systemPrompt'], (items) => {
+chrome.storage.sync.get(['apiKey', 'voice', 'systemPrompt', 'volume'], (items) => {
   try {
     if (items.apiKey) validateAPIKey(items.apiKey);
     apiKey = items.apiKey || '';
     selectedVoice = items.voice || 'aoede';
     systemPrompt = items.systemPrompt || defaultSystemPrompt;
+    currentVolume = items.volume !== undefined ? items.volume : 1.0;
   } catch (error) {
     console.error('Settings loading error:', error);
     notifyError(error);
@@ -80,6 +82,7 @@ chrome.storage.onChanged.addListener((changes) => {
     }
     if (changes.voice) selectedVoice = changes.voice.newValue;
     if (changes.systemPrompt) systemPrompt = changes.systemPrompt.newValue;
+    if (changes.volume) currentVolume = changes.volume.newValue;
   } catch (error) {
     console.error('Settings change error:', error);
     notifyError(error);
@@ -195,9 +198,30 @@ function getPlaybackState() {
   return audioStreamer ? audioStreamer.getPlaybackState() : { playbackState: null };
 }
 
+// Debounce utility function
+function debounce(func, delay) {
+  let timeout;
+  return function(...args) {
+    const context = this;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(context, args), delay);
+  };
+}
+
+// Debounced function to save volume to storage
+const debouncedSaveVolume = debounce((volumeToSave) => {
+  chrome.storage.sync.set({ volume: volumeToSave }, () => {
+    if (chrome.runtime.lastError) {
+      console.error(`Error saving volume: ${chrome.runtime.lastError.message}`);
+    }
+  });
+}, 500); // 500ms delay
+
 function handleVolumeChange(request) {
   if (audioStreamer) {
     audioStreamer.setVolume(request.volume);
+    currentVolume = request.volume; // Update currentVolume immediately for responsiveness
+    debouncedSaveVolume(currentVolume); // Save to storage with debounce
   }
 }
 
@@ -291,6 +315,7 @@ async function transcribeMessages(...messages) {
         throw new Error(`Failed to load AudioStreamer: ${error.message}`);
       });
       audioStreamer = new AudioStreamer(audioContext);
+      audioStreamer.setVolume(currentVolume); // Apply stored/current volume
       await audioStreamer.resume();
     }
 
