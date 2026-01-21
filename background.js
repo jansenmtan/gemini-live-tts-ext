@@ -7,7 +7,10 @@ import { AudioStreamer } from "./audioStreamer.js";
 import { CustomError, APIKeyError, WebSocketError } from "./errors.js";
 
 let apiKey = '';
-let selectedVoice = 'aoede'; // Default voice
+let selectedVoice = 'Aoede'; // Default voice
+let selectedModel = 'gemini-2.5-flash-native-audio-preview-12-2025'; // Default model for Native Audio
+let selectedModelTTS = 'gemini-2.5-flash-preview-tts'; // Default model for TTS
+let apiType = 'native-audio'; // 'native-audio' or 'tts'
 let systemPrompt = '';
 let currentVolume = 1.0; // Default volume, will be updated from storage
 
@@ -41,11 +44,14 @@ function validateAPIKey(key) {
 }
 
 // Load API key and other settings when extension starts
-chrome.storage.sync.get(['apiKey', 'voice', 'systemPrompt', 'volume'], (items) => {
+chrome.storage.sync.get(['apiKey', 'voice', 'model', 'modelTTS', 'apiType', 'systemPrompt', 'volume'], (items) => {
   try {
     if (items.apiKey) validateAPIKey(items.apiKey);
     apiKey = items.apiKey || '';
-    selectedVoice = items.voice || 'aoede';
+    selectedVoice = items.voice || 'Aoede';
+    selectedModel = items.model || 'gemini-2.5-flash-native-audio-preview-12-2025';
+    selectedModelTTS = items.modelTTS || 'gemini-2.5-flash-preview-tts';
+    apiType = items.apiType || 'native-audio';
     systemPrompt = items.systemPrompt || defaultSystemPrompt;
     currentVolume = items.volume !== undefined ? items.volume : 1.0;
   } catch (error) {
@@ -62,6 +68,9 @@ chrome.storage.onChanged.addListener((changes) => {
       apiKey = changes.apiKey.newValue;
     }
     if (changes.voice) selectedVoice = changes.voice.newValue;
+    if (changes.model) selectedModel = changes.model.newValue;
+    if (changes.modelTTS) selectedModelTTS = changes.modelTTS.newValue;
+    if (changes.apiType) apiType = changes.apiType.newValue;
     if (changes.systemPrompt) systemPrompt = changes.systemPrompt.newValue;
     if (changes.volume) currentVolume = changes.volume.newValue;
   } catch (error) {
@@ -130,7 +139,16 @@ async function transcribeMessages(...messages) {
       chrome.runtime.sendMessage({ action: 'initializeAudio' });
     }
 
-    chrome.runtime.sendMessage({ action: 'transcribeMessages', apiKey: apiKey, selectedVoice: selectedVoice, systemPrompt: systemPrompt, messages: messages });
+    chrome.runtime.sendMessage({
+      action: 'transcribeMessages',
+      apiKey: apiKey,
+      selectedVoice: selectedVoice,
+      selectedModel: selectedModel,
+      selectedModelTTS: selectedModelTTS,
+      apiType: apiType,
+      systemPrompt: systemPrompt,
+      messages: messages
+    });
   } catch (error) {
     notifyError(error);
     throw error;
@@ -143,7 +161,17 @@ async function handleScreenshotCapture(area) {
       notifyError(new Error(`Screenshot capture failed: ${chrome.runtime.lastError.message}`));
       return;
     }
-    chrome.runtime.sendMessage({ action: 'cropScreenshotAndTranscribe', apiKey: apiKey, selectedVoice: selectedVoice, systemPrompt: systemPrompt, dataUrl: dataUrl, area: area });
+    chrome.runtime.sendMessage({
+      action: 'cropScreenshotAndTranscribe',
+      apiKey: apiKey,
+      selectedVoice: selectedVoice,
+      selectedModel: selectedModel,
+      selectedModelTTS: selectedModelTTS,
+      apiType: apiType,
+      systemPrompt: systemPrompt,
+      dataUrl: dataUrl,
+      area: area
+    });
   });
 }
 
@@ -168,7 +196,13 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       }
     };
     transcribeMessages(textMessage);
-	  chrome.action.openPopup();
+    // Try to open popup, but don't fail if it's not available
+    try {
+      chrome.action.openPopup();
+    } catch (e) {
+      // Popup not available (e.g., TTS mode or no active tab)
+      console.log('Popup not available:', e.message);
+    }
   }
 });
 
@@ -208,7 +242,7 @@ chrome.action.onClicked.addListener(async (tab) => {
   if (!isFile) {
     // can do script injection
     console.log("INJECTING SCRIPT.");
-    chrome.scripting.executeScript({files: ['screenshotSelection.js'], target: {tabId: tab.id}});
+    chrome.scripting.executeScript({ files: ['screenshotSelection.js'], target: { tabId: tab.id } });
   } else {
     // cannot do script injection.
     // just take a screenshot of the whole tab and hope for the best.
@@ -239,4 +273,3 @@ chrome.runtime.onInstalled.addListener(async ({ reason, temporary }) => {
       break;
   }
 });
-

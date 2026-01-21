@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>Gemini TTS Settings</title>
-   <link rel="stylesheet" href="styles.css">
-   <style>
+  <link rel="stylesheet" href="styles.css">
+  <style>
     details {
       margin-top: 1rem;
     }
@@ -17,8 +18,107 @@
       margin-top: 1rem;
       font-style: italic;
     }
+
+    .voice-category {
+      font-weight: bold;
+      color: #4285f4;
+      background-color: #e8f0fe;
+      padding: 4px 0;
+    }
+
+    #voiceSelect {
+      max-height: 300px;
+    }
+
+    .voice-info,
+    .model-info {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    .model-select-wrapper {
+      margin-top: 10px;
+    }
+
+    .api-type-selector {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .api-type-btn {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+    }
+
+    .api-type-btn:hover {
+      border-color: #4a90e2;
+    }
+
+    .api-type-btn.active {
+      border-color: #4a90e2;
+      background: #f0f7ff;
+    }
+
+    .api-type-btn h4 {
+      margin: 0 0 4px 0;
+      color: #2c5282;
+      font-size: 14px;
+    }
+
+    .api-type-btn p {
+      margin: 0;
+      font-size: 11px;
+      color: #718096;
+    }
+
+    .api-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      margin-left: 6px;
+    }
+
+    .badge-live {
+      background: #48bb78;
+      color: white;
+    }
+
+    .badge-tts {
+      background: #4299e1;
+      color: white;
+    }
+
+    .badge-new {
+      background: #ed8936;
+      color: white;
+    }
+
+    .pricing-info {
+      font-size: 11px;
+      color: #718096;
+      background: #f7fafc;
+      padding: 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
   </style>
 </head>
+
 <body>
   <div class="container">
     <h2><img src="icon-32.png" class="icon" /> Settings</h2>
@@ -28,27 +128,131 @@
         <label for="apiKey">Gemini API Key:</label>
         <div class="api-key-wrapper" style="display: flex; align-items: center;">
           <input class="api-key-input" type="text" id="apiKey" style="flex-grow: 1;">
-          <button id="toggleApiKeyVisibility" type="button" style="padding: 4px 8px; font-size: 12px; margin-left: 5px;">Show</button>
+          <button id="toggleApiKeyVisibility" type="button"
+            style="padding: 4px 8px; font-size: 12px; margin-left: 5px;">Show</button>
         </div>
       </div>
+
+      <!-- API Type Selector -->
       <div class="field">
-        <label for="voiceSelect">Voice:</label>
-        <select id="voiceSelect">
-          <option value="puck">Puck</option>
-          <option value="charon">Charon</option>
-          <option value="kore">Kore</option>
-          <option value="fenrir">Fenrir</option>
-          <option value="aoede">Aoede</option>
+        <label>API Type:</label>
+        <div class="api-type-selector">
+          <button type="button" class="api-type-btn active" data-type="native-audio">
+            <h4>Native Audio (Live API) <span class="api-badge badge-live">LIVE</span></h4>
+            <p>Supports prompts, translation, images. Natural voices with emotions.</p>
+          </button>
+          <button type="button" class="api-type-btn" data-type="tts">
+            <h4>Text-to-Speech <span class="api-badge badge-tts">TTS</span></h4>
+            <p>Just reads text as-is. No prompts, no translation. Cheaper.</p>
+          </button>
+        </div>
+      </div>
+
+      <!-- Model Selection for Native Audio -->
+      <div class="field model-select-wrapper" id="nativeAudioModels">
+        <label for="modelSelectNative">Model (Native Audio):</label>
+        <select id="modelSelectNative">
+          <optgroup label="Gemini 2.5 Flash Native Audio">
+            <option value="gemini-2.5-flash-native-audio-preview-12-2025" selected>
+              gemini-2.5-flash-native-audio-preview-12-2025 (Latest) <span class="badge-new">NEW</span>
+            </option>
+            <option value="gemini-2.5-flash-native-audio-preview-09-2025">
+              gemini-2.5-flash-native-audio-preview-09-2025
+            </option>
+          </optgroup>
         </select>
+        <div class="pricing-info">
+          <strong>Pricing:</strong> Text: $0.50/M input, $2/M output | Audio/Video: $3/M input, $12/M output
+        </div>
+      </div>
+
+      <!-- Model Selection for TTS -->
+      <div class="field model-select-wrapper hidden" id="ttsModels">
+        <label for="modelSelectTTS">Model (TTS):</label>
+        <select id="modelSelectTTS">
+          <optgroup label="Gemini 2.5 TTS Models">
+            <option value="gemini-2.5-flash-preview-tts" selected>
+              gemini-2.5-flash-preview-tts (Recommended - Faster & Cheaper)
+            </option>
+            <option value="gemini-2.5-pro-preview-tts">
+              gemini-2.5-pro-preview-tts (Higher Quality)
+            </option>
+          </optgroup>
+        </select>
+        <div class="pricing-info">
+          <strong>Flash:</strong> $0.50/M input, $10/M output<br>
+          <strong>Pro:</strong> $1.00/M input, $20/M output
+        </div>
+      </div>
+
+      <!-- Voice Selection -->
+      <div class="field">
+        <label for="voiceSelect">Voice (30 voices available):</label>
+        <select id="voiceSelect">
+          <!-- GA Voices - Generally Available -->
+          <optgroup label="Featured Voices (GA)">
+            <option value="Puck">Puck - Upbeat, playful</option>
+            <option value="Charon">Charon - Smooth, informative male</option>
+            <option value="Kore">Kore - Firm, energetic female</option>
+            <option value="Fenrir">Fenrir - Excitable, enthusiastic</option>
+            <option value="Aoede" selected>Aoede - Clear, breezy female</option>
+            <option value="Leda">Leda - Youthful, professional female</option>
+            <option value="Orus">Orus - Firm, deep mature male</option>
+            <option value="Zephyr">Zephyr - Bright, energetic female</option>
+          </optgroup>
+
+          <!-- Additional Voices -->
+          <optgroup label="Additional Voices">
+            <option value="Achernar">Achernar</option>
+            <option value="Achird">Achird</option>
+            <option value="Algenib">Algenib</option>
+            <option value="Algieba">Algieba</option>
+            <option value="Autonoe">Autonoe</option>
+            <option value="Callirrhoe">Callirrhoe</option>
+            <option value="Despina">Despina</option>
+            <option value="Enceladus">Enceladus</option>
+            <option value="Erinome">Erinome</option>
+            <option value="Gacrux">Gacrux</option>
+            <option value="Laomedeia">Laomedeia</option>
+            <option value="Sadachbia">Sadachbia</option>
+            <option value="Sadaltager">Sadaltager</option>
+            <option value="Schedar">Schedar</option>
+            <option value="Sulafat">Sulafat</option>
+            <option value="Umbriel">Umbriel</option>
+            <option value="Vindemiatrix">Vindemiatrix</option>
+            <option value="Zubenelgenubi">Zubenelgenubi</option>
+          </optgroup>
+
+          <!-- Experimental/Potential Voices -->
+          <optgroup label="Experimental Voices">
+            <option value="Rasalas">Rasalas</option>
+            <option value="Perseus">Perseus</option>
+            <option value="Iapetus">Iapetus</option>
+            <option value="Dione">Dione</option>
+            <option value="Ariel">Ariel</option>
+            <option value="Cressida">Cressida</option>
+            <option value="Helene">Helene</option>
+            <option value="Lysithea">Lysithea</option>
+            <option value="Rhea">Rhea</option>
+            <option value="Tethys">Tethys</option>
+            <option value="Titan">Titan</option>
+            <option value="Oberon">Oberon</option>
+          </optgroup>
+        </select>
+        <div class="voice-info">All 30 Gemini Native Audio voices. Featured voices are officially supported.</div>
       </div>
     </div>
 
-    <div class="field">
+    <div class="field" id="advancedSettingsWrapper">
       <details>
-        <summary>Advanced settings</summary>
+        <summary>Advanced settings (Native Audio only)</summary>
         <div class="field">
-          <label for="systemPrompt" title="Instructions Gemini will follow for text and image inputs.&#013Leave blank to use the default system prompt.">System Prompt:</label>
-          <textarea id="systemPrompt" rows="4" placeholder="You generate speech from given text." style="width: 100%;"></textarea>
+          <label for="systemPrompt" title="Instructions Gemini will follow for text and image inputs.">System
+            Prompt:</label>
+          <textarea id="systemPrompt" rows="4" placeholder="You generate speech from given text."
+            style="width: 100%;"></textarea>
+          <div class="voice-info">Note: System prompts only work with Native Audio (Live API). TTS just reads text
+            as-is.</div>
         </div>
       </details>
     </div>
@@ -58,4 +262,5 @@
   </div>
   <script src="options.js"></script>
 </body>
+
 </html>
