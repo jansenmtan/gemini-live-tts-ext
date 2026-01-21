@@ -85,15 +85,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       switch (request.action) {
         case "captureScreenshot":
           await handleScreenshotCapture(request.area);
+          sendResponse({ success: true });
           break;
         case "updatePlaybackState":
           updateActionButton(request.playbackState);
+          sendResponse({ success: true });
           break;
         case "notifyError":
           let error = new Error(request.message);
           error.name = request.name;
           error.stack = request.stack;
           notifyError(error);
+          sendResponse({ success: true });
           break;
         case "requestSaveVolume":
           if (request.volume !== undefined) {
@@ -104,6 +107,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               }
             });
           }
+          sendResponse({ success: true });
           break;
         case "getInitialVolume":
           sendResponse({ volume: currentVolume });
@@ -175,10 +179,12 @@ async function handleScreenshotCapture(area) {
   });
 }
 
-chrome.contextMenus.create({
-  id: "transcribe-text",
-  title: "Transcribe with Gemini",
-  contexts: ["selection"]
+chrome.contextMenus.removeAll(() => {
+  chrome.contextMenus.create({
+    id: "transcribe-text",
+    title: "Transcribe with Gemini",
+    contexts: ["selection"]
+  });
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -196,13 +202,16 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       }
     };
     transcribeMessages(textMessage);
-    // Try to open popup, but don't fail if it's not available
-    try {
-      chrome.action.openPopup();
-    } catch (e) {
-      // Popup not available (e.g., TTS mode or no active tab)
-      console.log('Popup not available:', e.message);
-    }
+    // Temporarily enable popup for this interaction so it can open
+    chrome.action.setPopup({ popup: "popup.html" });
+    chrome.action.setTitle({ title: "Gemini TTS Controls" });
+    chrome.action.setIcon({ path: "icon-32.png" });
+
+    // Try to open popup
+    chrome.action.openPopup().catch(e => {
+      // Ignore error if popup cannot be opened (e.g. devtools closed context, etc)
+      console.log('Popup auto-open skipped:', e.message);
+    });
   }
 });
 

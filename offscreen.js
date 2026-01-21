@@ -50,6 +50,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       switch (request.action) {
         case 'initializeAudio':
           initializeAudio();
+          sendResponse({ success: true });
           break;
         case 'transcribeMessages':
           if (request.apiKey) apiKey = request.apiKey;
@@ -59,6 +60,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           if (request.apiType) apiType = request.apiType;
           if (request.systemPrompt) systemPrompt = request.systemPrompt;
           transcribeMessages(...request.messages);
+          sendResponse({ success: true });
           break;
         case 'cropScreenshotAndTranscribe':
           if (request.apiKey) apiKey = request.apiKey;
@@ -68,9 +70,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           if (request.apiType) apiType = request.apiType;
           if (request.systemPrompt) systemPrompt = request.systemPrompt;
           cropScreenshotAndTranscribe(request.dataUrl, request.area);
+          sendResponse({ success: true });
           break;
         case 'resetWebSocket':
           await handleWebSocketReset(request);
+          sendResponse({ success: true });
           break;
         case 'getPlaybackState':
           sendResponse(audioStreamer ? audioStreamer.getPlaybackState() : { playbackState: null });
@@ -81,6 +85,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             // Request background script to save volume using the debounced function
             debouncedRequestSaveVolume(request.volume);
           }
+          sendResponse({ success: true });
           break;
         case 'getVolume':
           sendResponse({ volume: audioStreamer ? audioStreamer.getVolume() : 1.0 });
@@ -148,16 +153,25 @@ async function transcribeMessages(...messages) {
       await transcribeWithTTS(messages);
     } else {
       // Native Audio (Live API) - WebSocket
-      if (!ws) {
-        await createWebSocketClient(selectedVoice, selectedModel);
-      }
+      const ensureConnection = async () => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          console.log('WebSocket not connected or closed. Reconnecting...');
+          await createWebSocketClient(selectedVoice, selectedModel);
+        }
+      };
 
-      if (ws.readyState !== WebSocket.OPEN) {
-        throw new WebSocketError('WebSocket connection is not open');
+      try {
+        await ensureConnection();
+        audioStreamer.refreshVolume();
+        for (const message of messages) ws.send(JSON.stringify(message));
+      } catch (err) {
+        console.warn('Error sending message, trying to reconnect ones...', err);
+        // Retry once
+        await handleWebSocketReset({});
+        await ensureConnection();
+        audioStreamer.refreshVolume();
+        for (const message of messages) ws.send(JSON.stringify(message));
       }
-
-      audioStreamer.refreshVolume();
-      for (const message of messages) ws.send(JSON.stringify(message));
     }
   } catch (error) {
     notifyError(error);
