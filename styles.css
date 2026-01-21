@@ -173,3 +173,37 @@ label {
   padding: 1rem;
   margin: 1rem 0;
 }
+
+/* Enhanced select styles for voice/model selection */
+select optgroup {
+  font-weight: 600;
+  font-style: normal;
+  color: #4285f4;
+  background-color: #f8f9fa;
+  padding: 4px 0;
+}
+
+select option {
+  font-weight: normal;
+  color: #1a1a1a;
+  padding: 4px 8px;
+}
+
+.voice-info {
+  font-size: 12px;
+  color: #718096;
+  margin-top: 4px;
+}
+
+.model-select-wrapper {
+  margin-bottom: 15px;
+}
+
+/* Status messages */
+#status.success {
+  color: #38a169;
+}
+
+#status.error {
+  color: #e53e3e;
+}

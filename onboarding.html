@@ -1,20 +1,86 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>Welcome to Gemini Live TTS</title>
   <link rel="stylesheet" href="styles.css">
+  <style>
+    .feature-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .feature-item {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 3px solid #4a90e2;
+    }
+
+    .feature-item strong {
+      color: #2c5282;
+    }
+
+    .api-comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .api-card {
+      background: #f0f7ff;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #4a90e2;
+    }
+
+    .api-card h4 {
+      margin: 0 0 8px 0;
+      color: #2c5282;
+    }
+
+    .api-card p {
+      margin: 0;
+      font-size: 13px;
+      color: #4a5568;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .badge-live {
+      background: #48bb78;
+    }
+
+    .badge-tts {
+      background: #4299e1;
+    }
+  </style>
 </head>
+
 <body>
   <div class="container">
-    <h1><img src="icon-32.png" class="icon" /> Gemini Live TTS</h1>
-    <p>Turn text and images into natural-sounding speech using Google's Gemini AI.</p>
+    <h1><img src="icon-32.png" class="icon" /> Gemini Live TTS v2.4</h1>
+    <p>Turn text and images into natural-sounding speech using Google's Gemini AI with <strong>30 HD voices</strong>.
+    </p>
 
     <div class="step">
-      <h3>Set Up Your API Key</h3>
+      <h3>Step 1: Set Up Your API Key</h3>
       <p>Before you can use the extension, you'll need a Gemini API key:</p>
       <ol>
-        <li>Click the "Create API key" button at <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a>.</li>
+        <li>Go to <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a> and click "Create
+          API key".</li>
         <li>Copy the key into the <a href="options.html" target="_blank">extension's settings page</a>.</li>
+        <li>Choose your preferred <strong>API type</strong>, <strong>model</strong>, and <strong>voice</strong>.</li>
         <li>Press "Save".</li>
       </ol>
       <div class="warning">
@@ -22,34 +88,74 @@
       </div>
     </div>
 
+    <div class="step">
+      <h3>Step 2: Choose Your API Type</h3>
+      <p>This extension supports two different Gemini APIs:</p>
+
+      <div class="api-comparison">
+        <div class="api-card">
+          <h4>Native Audio (Live API) <span class="badge badge-live">LIVE</span></h4>
+          <p>Real-time WebSocket connection. Supports images. Natural voices with emotions. Best for conversations and
+            image descriptions.</p>
+        </div>
+        <div class="api-card">
+          <h4>Text-to-Speech <span class="badge badge-tts">TTS</span></h4>
+          <p>REST API. Precise text reading. Cheaper pricing. Best for audiobooks, articles, and exact pronunciation.
+          </p>
+        </div>
+      </div>
+    </div>
+
     <div class="tips">
-      <h3>Usage Tips</h3>
-      
+      <h3>How to Use</h3>
+
       <div class="tip">
         <strong>Text to Speech:</strong>
         <p>Select any text on a webpage, right-click, and choose "Transcribe with Gemini" from the context menu.</p>
-        <img src="example-text.png" class="icon" alt="Example showing text transcription. Selected text is highlighted in blue. A context menu is open. The cursor is hovering over an option in the menu titled 'Transcribe with Gemini'." style="width: 100%; height: auto;" />
+        <img src="example-text.png" class="icon" alt="Example showing text transcription"
+          style="width: 100%; height: auto;" />
       </div>
 
       <div class="tip">
-        <strong>Image to Speech:</strong>
-        <p>Click the extension icon <img src="page_action-16.png" class="icon" alt="Gemini TTS page action icon" /> in your address bar to activate the image selection tool.</p>
-        <img src="example-image-1.png" class="icon" alt="Example showing the cursor hovering over a button on the address bar. The button is titled 'Take screenshot to send to Gemini'." style="width: 100%; height: auto;" />
-        <p>Click and drag to select an area of the page to describe.</p>
-        <img src="example-image-2.png" class="icon" alt="Example showing a selection box made over a paragraph." style="width: 100%; height: auto;" />
+        <strong>Image to Speech (Native Audio only):</strong>
+        <p>Click the extension icon <img src="page_action-16.png" class="icon" alt="icon" /> in your address bar to
+          activate the image selection tool. Click and drag to select an area.</p>
       </div>
 
       <div class="tip">
         <strong>Playback Controls:</strong>
-        <p>Click the extension icon <img src="icon-16.png" class="icon" alt="Gemini TTS browser action icon" /> in your toolbar to open the playback control popup.</p>
-        <img src="example-playback-controls.png" class="icon" alt="Example showing the cursor hovering near a button on the toolbar. A popup is open showing a play button, a stop button, and a volume slider." style="width: 100%; height: auto;" />
+        <p>Click the extension icon <img src="icon-16.png" class="icon" alt="icon" /> in your toolbar to open the
+          playback control popup with play/pause, stop, and volume controls.</p>
       </div>
-
     </div>
+
+    <div class="tips">
+      <h3>Features</h3>
+      <div class="feature-list">
+        <div class="feature-item">
+          <strong>30 HD Voices</strong><br>
+          Choose from Featured, Additional, and Experimental voices
+        </div>
+        <div class="feature-item">
+          <strong>Two API Types</strong><br>
+          Native Audio (Live) or Text-to-Speech
+        </div>
+        <div class="feature-item">
+          <strong>Image Support</strong><br>
+          Describe images with Native Audio API
+        </div>
+        <div class="feature-item">
+          <strong>Custom Prompts</strong><br>
+          Customize voice style in Advanced settings
+        </div>
+      </div>
+    </div>
+
     <div class="tips">
       <h3>FAQ</h3>
-        For more information and privacy details, see the <a href="faq.html" target="_blank">FAQ</a>.
+      For more information and privacy details, see the <a href="faq.html" target="_blank">FAQ</a>.
     </div>
   </div>
 </body>
+
 </html>

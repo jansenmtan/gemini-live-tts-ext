@@ -3,13 +3,16 @@ let audioContext = null;
 let audioStreamer = null;
 
 let apiKey = '';
-let selectedVoice = 'aoede'; // Default voice
+let selectedVoice = 'Aoede'; // Default voice
+let selectedModel = 'gemini-2.5-flash-native-audio-preview-12-2025'; // Default model for Native Audio
+let selectedModelTTS = 'gemini-2.5-flash-preview-tts'; // Default model for TTS
+let apiType = 'native-audio'; // 'native-audio' or 'tts'
 let systemPrompt = '';
 
 // Debounce utility function
 function debounce(func, delay) {
   let timeout;
-  return function(...args) {
+  return function (...args) {
     const context = this;
     clearTimeout(timeout);
     timeout = setTimeout(() => func.apply(context, args), delay);
@@ -21,7 +24,6 @@ const debouncedRequestSaveVolume = debounce((volume) => {
   chrome.runtime.sendMessage({ action: 'requestSaveVolume', volume: volume });
 }, 500); // 500ms delay
 
-const modelId = "gemini-2.0-flash-exp";
 const audioSampleRate = 24000;
 
 async function initializeAudio() {
@@ -52,12 +54,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'transcribeMessages':
           if (request.apiKey) apiKey = request.apiKey;
           if (request.selectedVoice) selectedVoice = request.selectedVoice;
+          if (request.selectedModel) selectedModel = request.selectedModel;
+          if (request.selectedModelTTS) selectedModelTTS = request.selectedModelTTS;
+          if (request.apiType) apiType = request.apiType;
           if (request.systemPrompt) systemPrompt = request.systemPrompt;
           transcribeMessages(...request.messages);
           break;
         case 'cropScreenshotAndTranscribe':
           if (request.apiKey) apiKey = request.apiKey;
           if (request.selectedVoice) selectedVoice = request.selectedVoice;
+          if (request.selectedModel) selectedModel = request.selectedModel;
+          if (request.selectedModelTTS) selectedModelTTS = request.selectedModelTTS;
+          if (request.apiType) apiType = request.apiType;
           if (request.systemPrompt) systemPrompt = request.systemPrompt;
           cropScreenshotAndTranscribe(request.dataUrl, request.area);
           break;
@@ -135,23 +143,154 @@ async function transcribeMessages(...messages) {
       }
     }
 
-    if (!ws) {
-      await createWebSocketClient(selectedVoice, systemPrompt);
-    }
+    // Choose API based on apiType
+    if (apiType === 'tts') {
+      await transcribeWithTTS(messages);
+    } else {
+      // Native Audio (Live API) - WebSocket
+      if (!ws) {
+        await createWebSocketClient(selectedVoice, selectedModel);
+      }
 
-    if (ws.readyState !== WebSocket.OPEN) {
-      throw new WebSocketError('WebSocket connection is not open');
-    }
+      if (ws.readyState !== WebSocket.OPEN) {
+        throw new WebSocketError('WebSocket connection is not open');
+      }
 
-    audioStreamer.refreshVolume(); // before sending messages, ensure volume is set
-    for (const message of messages) ws.send(JSON.stringify(message));
+      audioStreamer.refreshVolume();
+      for (const message of messages) ws.send(JSON.stringify(message));
+    }
   } catch (error) {
     notifyError(error);
     throw error;
   }
 }
 
-function createWebSocketClient(voice = 'aoede') {
+// TTS API using REST (not WebSocket)
+async function transcribeWithTTS(messages) {
+  try {
+    // Extract text from messages
+    let textToSpeak = '';
+    for (const message of messages) {
+      if (message.client_content && message.client_content.turns) {
+        for (const turn of message.client_content.turns) {
+          if (turn.parts) {
+            for (const part of turn.parts) {
+              if (part.text) {
+                textToSpeak += part.text + ' ';
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (!textToSpeak.trim()) {
+      throw new Error('No text to speak');
+    }
+
+    console.log('TTS: Speaking text:', textToSpeak.substring(0, 100) + '...');
+    console.log('TTS: Using model:', selectedModelTTS);
+    console.log('TTS: Using voice:', selectedVoice);
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModelTTS}:generateContent?key=${apiKey}`;
+
+    // Request format according to Google's official documentation (using camelCase!)
+    const requestBody = {
+      contents: [{
+        parts: [{ text: textToSpeak.trim() }]
+      }],
+      generationConfig: {
+        responseModalities: ["AUDIO"],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: selectedVoice
+            }
+          }
+        }
+      }
+    };
+
+    // Note: TTS models don't support system instructions
+    console.log('TTS: Request body:', JSON.stringify(requestBody, null, 2));
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('TTS API Error Response:', data);
+      const errorMessage = data.error?.message || `TTS API error: ${response.status}`;
+      throw new Error(errorMessage);
+    }
+
+    console.log('TTS: Response received:', data);
+
+    // Process audio response
+    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+      const parts = data.candidates[0].content.parts;
+      for (const part of parts) {
+        if (part.inlineData && part.inlineData.mimeType && part.inlineData.mimeType.startsWith('audio/')) {
+          const audioData = part.inlineData.data;
+          const mimeType = part.inlineData.mimeType;
+
+          console.log('TTS: Playing audio, mimeType:', mimeType);
+          // Convert base64 to audio and play
+          await playBase64Audio(audioData, mimeType);
+        }
+      }
+    } else {
+      console.error('TTS: No audio in response:', data);
+      throw new Error('No audio data in TTS response');
+    }
+  } catch (error) {
+    console.error('TTS API Error:', error);
+    throw error;
+  }
+}
+
+// Play base64 encoded audio
+async function playBase64Audio(base64Data, mimeType) {
+  try {
+    // Decode base64
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    // Check if it's PCM audio (like native audio) or encoded audio (like wav/mp3)
+    if (mimeType.includes('pcm') || mimeType.includes('raw')) {
+      // PCM audio - use audioStreamer
+      audioStreamer.addPCM16(bytes);
+    } else {
+      // Encoded audio (wav, mp3, etc) - decode and play
+      const audioBuffer = await audioContext.decodeAudioData(bytes.buffer);
+      const source = audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+
+      // Create gain node for volume control
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = audioStreamer ? audioStreamer.getVolume() : 1.0;
+
+      source.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      source.start(0);
+    }
+  } catch (error) {
+    console.error('Error playing audio:', error);
+    throw error;
+  }
+}
+
+
+function createWebSocketClient(voice = 'Aoede', model = 'gemini-2.5-flash-native-audio-preview-12-2025') {
   return new Promise((resolve, reject) => {
     try {
       validateAPIKey(apiKey);
@@ -168,7 +307,7 @@ function createWebSocketClient(voice = 'aoede') {
         clearTimeout(connectionTimeout);
         console.log('WebSocket connected');
         const config = {
-          model: `models/${modelId}`,
+          model: `models/${model}`,
           generation_config: {
             response_modalities: ["AUDIO"],
             speech_config: {
@@ -277,6 +416,15 @@ async function handleWebSocketReset(request) {
     if (request.voice) {
       selectedVoice = request.voice;
     }
+    if (request.model) {
+      selectedModel = request.model;
+    }
+    if (request.modelTTS) {
+      selectedModelTTS = request.modelTTS;
+    }
+    if (request.apiType) {
+      apiType = request.apiType;
+    }
     if (request.systemPrompt) {
       systemPrompt = request.systemPrompt;
     }
@@ -294,7 +442,7 @@ function getContentFromBlob(blob) {
     reader.onload = (e) => {
       const data = e.target.result.split(',')[1];
       //const mimeType = e.target.result.split(',')[0].split(':')[1].split(';')[0];
-	  const mimeType = "audio/pcm";
+      const mimeType = "audio/pcm";
       resolve({ data, mimeType });
     };
 
@@ -315,11 +463,11 @@ async function getContentFromFile(url) {
 
 function realtimeInputMessage(content) {
   return {
-	realtimeInput: {
-	  mediaChunks: [
-		content
-	  ]
-	}
+    realtimeInput: {
+      mediaChunks: [
+        content
+      ]
+    }
   };
 }
 
@@ -366,4 +514,3 @@ async function cropScreenshotAndTranscribe(dataUrl, area) {
     img.src = dataUrl;
   });
 }
-

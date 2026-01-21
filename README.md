@@ -1,110 +1,49 @@
-[![Badge Issues]][Issues]
-[![Badge License]][License]
-[![Badge Mozilla]][Mozilla]
-[![Badge Chrome]][Chrome]
+# Gemini Live TTS Chrome Extension (Enhanced v2.4)
 
----
+> **Major Update v2.4.0**: Now supports **30 voices**, **TTS vs Native Audio** switching, and **Model Selection**!
 
-# Gemini Live Text-to-Speech Extension
+This extension enables you to use Google's Gemini Multimodal Live API (and TTS API) to read selected text on any webpage. It supports real-time streaming, image understanding (in Native Audio mode), and a wide range of natural voices.
 
-A browser extension that transcribes selected text to audio using Google Gemini Multimodal Live API.
+## ✨ New Features in v2.4
 
-[Install from Chrome Web Store](https://chromewebstore.google.com/detail/gemini-live-text-to-speec/olpjbfdakgoibngpmmihilbnlkabnlhl).
-[Install from Firefox Add-Ons](https://addons.mozilla.org/en-US/firefox/addon/gemini-text-to-speech/).
+- **🎙️ Two API Modes:**
+  - **Native Audio (Live API):** Real-time, supports system prompts (translation, style change), understands images. expensive but powerful.
+  - **Text-to-Speech (TTS):** Cheaper, standard text reading. Ideal for long articles.
+- **🤖 Model Selection:** Choose between `gemini-2.5-flash`, `gemini-2.5-pro` and other preview models.
+- **🗣️ 30+ Voices:** Full support for all Gemini voices including Kore, Fenrir, Aoede, Charon, and more.
+- **⚡ Fixed:** Resurrected the extension after Google deprecated old ephemeral models.
 
-## Features
+## 🚀 Installation
 
-- **Text transcription** - instantly convert selected text into natural-sounding speech.
-- **Image transcription** – listen to a description of any image!
-- Customizable voices and settings.
-- Seamless integration with your browser.
+1. Clone or download this repository.
+2. Open Chrome and navigate to `chrome://extensions`.
+3. Enable **Developer Mode** (top right).
+4. Click **Load unpacked** and select the extension folder.
 
-## Installation
+## ⚙️ Configuration
 
-### Chrome/Edge/Brave
+1. Get your API Key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+2. Click the extension icon and select **Options**.
+3. Enter your API Key.
+4. Select **API Type** (Native Audio or TTS).
+5. Choose your favorite **Voice** and **Model**.
+6. (Optional) Set a System Prompt (e.g., "Translate to Spanish and read").
 
-#### Chrome Web Store
-[Install from Chrome Web Store](https://chromewebstore.google.com/detail/gemini-live-text-to-speec/olpjbfdakgoibngpmmihilbnlkabnlhl).
+## 📝 Usage
 
-#### Manual installation
-1. Download or clone this repository
-2. Go to `chrome://extensions/`
-3. Enable "Developer mode"
-4. Click "Load unpacked" and select the extension directory
+1. **Select text** on any webpage.
+2. Right-click and choose **"Transcribe with Gemini"**.
+3. (Or click the extension icon to take a **screenshot** and have Gemini describe/read it - Native Audio only).
 
-### Firefox
+## 🛠️ Tech Stack
 
-#### Firefox Add-Ons
-[Install from Firefox Add-Ons](https://addons.mozilla.org/en-US/firefox/addon/gemini-text-to-speech/).
-
-#### Manual installation
-1. Download or clone this repository
-2. Go to `about:debugging#/runtime/this-firefox`
-3. Click "Load Temporary Add-on..." and select the manifest.json file
-
-## Usage
-
-### Text Selection
-1. Select text on any webpage
-2. Right-click and choose "Transcribe selected text"
-3. The extension will convert the text to speech
-
-### Screenshot Capture
-1. Click the extension icon in the toolbar
-2. Draw a selection around the text you want to capture
-3. The extension will process the image and read the text aloud
-
-### Playback Controls
-- Use the popup player to play/pause, stop, or adjust volume
-- Close the popup to stop playback
-
-<h3>Usage</h3>
-
-<strong>Text to Speech:</strong>
-- Select any text on a webpage, right-click, and choose "Transcribe with Gemini" from the context menu.
-
-<strong>Image to Speech:</strong>
-- Click the extension icon in your address bar to activate the image selection tool.
-- Click and drag to select an area of the page to describe.
-
-<strong>Playback Controls:</strong>
-- Click the extension icon in your toolbar to open the playback control popup.
-
-## Configuration
-
-1. Click the settings icon in the popup or right-click the extension icon and select "Options"
-2. Enter your Google Gemini API key
-3. Select your preferred voice
-4. Customize the system prompt if desired
-5. Click "Save"
-
-## API Key
-
-<h3>Set Up Your API Key</h3>
-
-1. Click the "Create API key" button at <a href="https://aistudio.google.com/apikey">Google AI Studio</a>.
-2. Copy the key into the extension's settings page.
-3. Press "Save".
-
-<strong>Note:</strong> Keep your API key private and don't share it with others.
-
-## Privacy
-
-This extension sends text and screenshots to Google's Gemini API for processing. No data is stored by the extension itself beyond your settings. Please review Google's privacy policy for information on how they handle your data.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-[MIT License](LICENSE)
-
-## Support
-
-If you find this extension useful, consider supporting the developer:
-- [Ko-fi](https://ko-fi.com/jansentan)
+- Chrome Extension Manifest V3
+- Gemini Live API (WebSocket)
+- Gemini TTS API (REST)
+- Native Audio / Web Audio API
 
 ## Credits
 
-Developed by Jansen Tan
+Original extension by [jansenmtan](https://github.com/jansenmtan).
+Fixes and v2.0 updates by [tomfalkenberg](https://github.com/tomfalkenberg).
+Major v2.4 overhaul (UI, Voices, TTS support) by **pinkigerl81-commits**.
