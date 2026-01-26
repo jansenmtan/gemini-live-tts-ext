@@ -89,7 +89,7 @@ chrome.storage.onChanged.addListener((changes) => {
   }
 });
 
-const modelId = "gemini-2.0-flash-exp";
+const modelId = "gemini-2.5-flash-native-audio-preview-12-2025";
 const audioSampleRate = 24000;
 
 let ws = null;
